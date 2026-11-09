@@ -40,3 +40,28 @@ fn does_not_build() -> i32 {
   });
   assert_eq!(counts, (1, 1), "one body built and one did not");
 }
+
+// Each frame of a trace names the file holding its function, so that a
+// caller running a crate of several files can place each step.
+#[test_log::test]
+fn trace_frames_name_their_file() {
+  let code = r#"
+fn add(a: i32, b: i32) -> i32 {
+  a + b
+}
+
+fn main() {
+  let x = add(1, 2);
+}
+"#;
+  let trace = test_utils::interpret_with(code, &Default::default()).unwrap();
+  let frames = trace
+    .steps
+    .iter()
+    .flat_map(|step| &step.stack.frames)
+    .collect::<Vec<_>>();
+  assert!(frames.iter().any(|frame| frame.name == "add"));
+  for frame in frames {
+    assert_eq!(frame.file_path, DUMMY_FILE_NAME, "frame {}", frame.name);
+  }
+}
