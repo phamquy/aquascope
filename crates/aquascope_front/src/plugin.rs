@@ -51,7 +51,16 @@ enum AquascopeCommand {
     show_flows: bool,
   },
 
-  Interpreter,
+  Interpreter {
+    /// Lift Miri's isolation, as `-Zmiri-disable-isolation` does, so that the
+    /// program can use the file system, the clock and the environment.
+    #[clap(long)]
+    disable_isolation: bool,
+
+    /// The program's command-line arguments, after `--`.
+    #[clap(last = true)]
+    program_args: Vec<String>,
+  },
 
   Preload,
   RustcVersion,
@@ -146,9 +155,16 @@ impl RustcPlugin for AquascopePlugin {
         let _ = run_with_callbacks(&compiler_args, &mut callbacks);
         postprocess(callbacks.output)
       }
-      Interpreter => {
+      Interpreter {
+        disable_isolation,
+        program_args,
+      } => {
         let mut callbacks = aquascope::interpreter::InterpretCallbacks::new(
           plugin_args.should_fail,
+          aquascope::interpreter::InterpretOptions {
+            disable_isolation,
+            program_args,
+          },
         );
         let _ = run_with_callbacks(&compiler_args, &mut callbacks);
         postprocess(callbacks.result.unwrap().map_err(|_| {
