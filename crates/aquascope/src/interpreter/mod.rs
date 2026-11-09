@@ -1,6 +1,12 @@
 //! Rust runtime visualizer using Miri
 
-use anyhow::Result;
+use std::{
+  io,
+  path::{Path, PathBuf},
+  sync::Arc,
+};
+
+use anyhow::{Context, Result};
 use either::Either;
 use rustc_data_structures::fx::FxIndexMap;
 use rustc_hir::def_id::LocalDefId;
@@ -14,6 +20,7 @@ mod step;
 
 pub use mvalue::MValue;
 use rustc_session::Session;
+use rustc_span::source_map::{FileLoader, RealFileLoader};
 pub use step::MTrace;
 
 use crate::interpreter::mapper::Mapper;
@@ -27,6 +34,130 @@ pub struct InterpretOptions {
   /// The program's command-line arguments. The program sees the crate's name
   /// before them, as a program run by Cargo sees its own.
   pub program_args: Vec<String>,
+  /// Run a binary compiled together with its package's library.
+  pub one_crate: Option<OneCrate>,
+}
+
+/// The module that holds a binary's root file in a `OneCrate` build.
+pub const BIN_MODULE: &str = "__aquascope_main";
+
+/// A binary compiled as a module of its package's library, so that the
+/// library's functions are in the crate being interpreted, the only crate
+/// whose functions the interpreter steps through and shows.
+///
+/// The library's root file is read with two lines added at its end, which
+/// keeps every position in every file: `extern crate self as <library>;`, so
+/// that the binary's `use <library>::...` names the crate itself, and a
+/// `#[path]` module holding the binary's root file. The library is compiled
+/// as an executable, which Miri requires, with `no_main`, and the run starts
+/// at the `main` of that module.
+#[derive(Debug, Clone)]
+pub struct OneCrate {
+  /// The library's root file, canonical, to recognise it when the compiler
+  /// reads it.
+  canonical_root: PathBuf,
+  appendix: String,
+}
+
+impl OneCrate {
+  /// `compiler_args` are the library's; `bin_file` is the binary's root file.
+  pub fn new(compiler_args: &[String], bin_file: &Path) -> Result<Self> {
+    let root = compiler_args
+      .iter()
+      .find(|arg| Path::new(arg).extension().is_some_and(|ext| ext == "rs"))
+      .map(PathBuf::from)
+      .context("no crate root in the compiler's arguments")?;
+    let crate_name = compiler_args
+      .iter()
+      .position(|arg| arg == "--crate-name")
+      .and_then(|i| compiler_args.get(i + 1))
+      .context("no --crate-name in the compiler's arguments")?;
+    let canonical_root = root
+      .canonicalize()
+      .with_context(|| format!("crate root {} not found", root.display()))?;
+    let bin_file = bin_file
+      .canonicalize()
+      .with_context(|| format!("binary {} not found", bin_file.display()))?;
+    let module_path =
+      relative_path(canonical_root.parent().unwrap(), &bin_file);
+    let appendix = format!(
+      "\nextern crate self as {crate_name};\n#[path = {:?}]\nmod {BIN_MODULE};\n",
+      module_path.to_string_lossy()
+    );
+    Ok(OneCrate {
+      canonical_root,
+      appendix,
+    })
+  }
+
+  /// The library's compiler arguments, changed to compile an executable whose
+  /// `main` is not at its root.
+  pub fn compiler_args(&self, args: &[String]) -> Vec<String> {
+    let mut out = Vec::with_capacity(args.len() + 1);
+    let mut args = args.iter();
+    while let Some(arg) = args.next() {
+      if arg == "--crate-type" {
+        args.next();
+        out.extend(["--crate-type".to_owned(), "bin".to_owned()]);
+      } else if arg.starts_with("--crate-type=") {
+        out.push("--crate-type=bin".to_owned());
+      } else {
+        out.push(arg.clone());
+      }
+    }
+    out.push("-Zcrate-attr=no_main".to_owned());
+    out
+  }
+
+  fn file_loader(&self) -> OneCrateLoader {
+    OneCrateLoader {
+      root: self.canonical_root.clone(),
+      appendix: self.appendix.clone(),
+    }
+  }
+}
+
+/// `target` relative to the folder `base`, both absolute.
+fn relative_path(base: &Path, target: &Path) -> PathBuf {
+  let base = base.components().collect::<Vec<_>>();
+  let target = target.components().collect::<Vec<_>>();
+  let common = base.iter().zip(&target).take_while(|(a, b)| a == b).count();
+  let mut path = PathBuf::new();
+  for _ in common .. base.len() {
+    path.push("..");
+  }
+  for component in &target[common ..] {
+    path.push(component);
+  }
+  path
+}
+
+/// Reads files from disk, adding a `OneCrate`'s lines to the library's root.
+struct OneCrateLoader {
+  root: PathBuf,
+  appendix: String,
+}
+
+impl FileLoader for OneCrateLoader {
+  fn file_exists(&self, path: &Path) -> bool {
+    RealFileLoader.file_exists(path)
+  }
+
+  fn read_file(&self, path: &Path) -> io::Result<String> {
+    let mut text = RealFileLoader.read_file(path)?;
+    if path.canonicalize().is_ok_and(|path| path == self.root) {
+      text.push_str(&self.appendix);
+    }
+    Ok(text)
+  }
+
+  fn read_binary_file(&self, path: &Path) -> io::Result<Arc<[u8]>> {
+    RealFileLoader.read_binary_file(path)
+  }
+
+  fn current_directory(&self) -> io::Result<PathBuf> {
+    RealFileLoader.current_directory()
+  }
 }
 
 pub(crate) fn interpret(
@@ -128,6 +259,9 @@ impl rustc_driver::Callbacks for InterpretCallbacks {
     if self.should_fail {
       config.override_queries = Some(override_queries);
     }
+    if let Some(one_crate) = &self.options.one_crate {
+      config.file_loader = Some(Box::new(one_crate.file_loader()));
+    }
   }
 
   fn after_analysis(
@@ -137,5 +271,45 @@ impl rustc_driver::Callbacks for InterpretCallbacks {
   ) -> rustc_driver::Compilation {
     self.result = Some(interpret(tcx, &self.options));
     rustc_driver::Compilation::Stop
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn relative_paths() {
+    let path = |s: &str| PathBuf::from(s);
+    assert_eq!(
+      relative_path(&path("/p/src"), &path("/p/src/main.rs")),
+      path("main.rs")
+    );
+    assert_eq!(
+      relative_path(&path("/p/src"), &path("/p/src/bin/tool.rs")),
+      path("bin/tool.rs")
+    );
+    assert_eq!(
+      relative_path(&path("/p/lib"), &path("/p/src/main.rs")),
+      path("../src/main.rs")
+    );
+  }
+
+  #[test]
+  fn one_crate_compiles_an_executable_without_main() {
+    let one_crate = OneCrate {
+      canonical_root: PathBuf::from("/p/src/lib.rs"),
+      appendix: String::new(),
+    };
+    let args = ["--crate-name", "mini", "src/lib.rs", "--crate-type", "lib"]
+      .map(String::from);
+    assert_eq!(one_crate.compiler_args(&args), [
+      "--crate-name",
+      "mini",
+      "src/lib.rs",
+      "--crate-type",
+      "bin",
+      "-Zcrate-attr=no_main"
+    ]);
   }
 }

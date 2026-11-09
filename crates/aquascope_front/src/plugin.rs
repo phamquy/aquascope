@@ -15,6 +15,7 @@ use aquascope::{
   errors::{
     initialize_error_tracking, silent::silent_session, track_body_diagnostics,
   },
+  interpreter::OneCrate,
 };
 use clap::{Parser, Subcommand};
 use fluid_let::fluid_set;
@@ -56,6 +57,12 @@ enum AquascopeCommand {
     /// program can use the file system, the clock and the environment.
     #[clap(long)]
     disable_isolation: bool,
+
+    /// Run the binary whose root file this is, compiled as one crate with
+    /// its package's library, so that the library's functions are shown too.
+    /// `--crate-of` names the library.
+    #[clap(long, value_name = "FILE")]
+    bin_file: Option<PathBuf>,
 
     /// The program's command-line arguments, after `--`.
     #[clap(last = true)]
@@ -127,7 +134,18 @@ impl RustcPlugin for AquascopePlugin {
     &self,
     target_dir: &Utf8Path,
   ) -> RustcPluginArgs<AquascopePluginArgs> {
-    let args = AquascopePluginArgs::parse_from(env::args().skip(1));
+    let mut args = AquascopePluginArgs::parse_from(env::args().skip(1));
+    // The compiler runs in the workspace root, not here.
+    if let AquascopeCommand::Interpreter {
+      bin_file: Some(file),
+      ..
+    } = &mut args.command
+    {
+      *file = file.canonicalize().unwrap_or_else(|e| {
+        eprintln!("--bin-file {}: {e}", file.display());
+        exit(2)
+      });
+    }
 
     log::debug!("Provided PluginArgs {args:?}");
 
@@ -204,13 +222,32 @@ impl RustcPlugin for AquascopePlugin {
       }
       Interpreter {
         disable_isolation,
+        bin_file,
         program_args,
       } => {
+        let one_crate = match bin_file
+          .map(|file| OneCrate::new(&compiler_args, &file))
+          .transpose()
+        {
+          Ok(one_crate) => one_crate,
+          Err(e) => {
+            eprintln!("aquascope interpreter: {e:#}");
+            return postprocess(Err::<(), _>(AquascopeError::BuildError {
+              range: None,
+              file_path: None,
+            }));
+          }
+        };
+        let compiler_args = match &one_crate {
+          Some(one_crate) => one_crate.compiler_args(&compiler_args),
+          None => compiler_args,
+        };
         let mut callbacks = aquascope::interpreter::InterpretCallbacks::new(
           plugin_args.should_fail,
           aquascope::interpreter::InterpretOptions {
             disable_isolation,
             program_args,
+            one_crate,
           },
         );
         let _ = run_with_callbacks(&compiler_args, &mut callbacks);

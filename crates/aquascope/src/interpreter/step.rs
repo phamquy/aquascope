@@ -11,7 +11,10 @@ use either::Either;
 use itertools::Itertools;
 use miri::*;
 use rustc_abi::{ExternAbi, FieldsShape, Size};
-use rustc_hir::def_id::{DefId, LOCAL_CRATE};
+use rustc_hir::{
+  def::DefKind,
+  def_id::{DefId, LOCAL_CRATE},
+};
 use rustc_middle::{
   mir::{
     self, Local, Location, Place, PlaceElem, RETURN_PLACE,
@@ -22,17 +25,35 @@ use rustc_middle::{
     layout::{HasTyCtxt, TyAndLayout},
   },
 };
-use rustc_session::CtfeBacktrace;
+use rustc_session::{CtfeBacktrace, config::EntryFnType};
 use rustc_span::Span;
 use rustc_utils::{PlaceExt, source_map::range::CharRange};
 use serde::Serialize;
 use ts_rs::TS;
 
 use super::{
-  InterpretOptions,
+  BIN_MODULE, InterpretOptions,
   mvalue::{MMemorySegment, MPathSegment, MValue},
 };
 use crate::analysis::span_file_path;
+
+/// The `main` of the binary's module in a `OneCrate` build.
+fn bin_module_main(tcx: TyCtxt) -> Option<DefId> {
+  tcx
+    .hir_crate_items(())
+    .definitions()
+    .map(|def_id| def_id.to_def_id())
+    .find(|&def_id| {
+      tcx.def_kind(def_id) == DefKind::Fn
+        && tcx
+          .opt_item_name(def_id)
+          .is_some_and(|name| name.as_str() == "main")
+        && tcx
+          .opt_parent(def_id)
+          .and_then(|parent| tcx.opt_item_name(parent))
+          .is_some_and(|name| name.as_str() == BIN_MODULE)
+    })
+}
 
 #[derive(Serialize, Debug, TS)]
 #[ts(export)]
@@ -175,9 +196,16 @@ struct LocalFrame<'a, 'tcx> {
 
 impl<'tcx> VisEvaluator<'tcx> {
   pub fn new(tcx: TyCtxt<'tcx>, options: &InterpretOptions) -> Result<Self> {
-    let (main_id, entry_fn_type) = tcx
-      .entry_fn(())
-      .context("no main or start function found")?;
+    let (main_id, entry_fn_type) = match tcx.entry_fn(()) {
+      Some(entry) => entry,
+      // In a `OneCrate` build, `main` is in the binary's module.
+      None => (
+        bin_module_main(tcx).context("no main or start function found")?,
+        EntryFnType::Main {
+          sigpipe: rustc_session::config::sigpipe::DEFAULT,
+        },
+      ),
+    };
     let args = std::iter::once(tcx.crate_name(LOCAL_CRATE).to_string())
       .chain(options.program_args.iter().cloned())
       .collect();
