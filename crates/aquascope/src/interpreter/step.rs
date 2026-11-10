@@ -219,6 +219,9 @@ impl<'tcx> VisEvaluator<'tcx> {
         validation: miri::ValidationMode::No,
         borrow_tracker: None,
         args,
+        // The host environment, which Miri gives the program only when
+        // isolation is lifted, as Miri's own driver passes it.
+        env: std::env::vars_os().collect(),
         isolated_op: if options.disable_isolation {
           IsolatedOp::Allow
         } else {

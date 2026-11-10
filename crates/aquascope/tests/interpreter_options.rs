@@ -82,3 +82,33 @@ fn helper() {}
     test_utils::interpret_with(code, &InterpretOptions::default()).unwrap_err();
   assert!(format!("{error:#}").contains("no main"), "{error:#}");
 }
+
+// Lifting isolation gives the program the host's environment, as
+// `-Zmiri-disable-isolation` does; isolated, it sees none.
+#[test_log::test]
+fn the_environment_comes_with_lifted_isolation() {
+  let code = r#"
+fn main() {
+  let has_path = std::env::var_os("PATH").is_some();
+}
+"#;
+  assert!(
+    std::env::var_os("PATH").is_some(),
+    "the test needs PATH set"
+  );
+  let lifted = InterpretOptions {
+    disable_isolation: true,
+    ..Default::default()
+  };
+  let trace = test_utils::interpret_with(code, &lifted).unwrap();
+  assert_eq!(
+    last_local(&trace, "has_path"),
+    json!({"type": "Bool", "value": true})
+  );
+  let isolated =
+    test_utils::interpret_with(code, &InterpretOptions::default()).unwrap();
+  assert_eq!(
+    last_local(&isolated, "has_path"),
+    json!({"type": "Bool", "value": false})
+  );
+}
