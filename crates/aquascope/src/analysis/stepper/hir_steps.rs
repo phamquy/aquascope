@@ -367,6 +367,96 @@ impl<'a, 'tcx: 'a> HirStepPoints<'a, 'tcx> {
     }
   }
 
+  /// For each block holding locations of the node `hir_id`, the last
+  /// statement index among them.
+  fn region_of(&self, hir_id: HirId) -> HashMap<mir::BasicBlock, usize> {
+    self
+      .ir_mapper
+      .get_mir_locations(hir_id, GatherDepth::Nested)
+      .map(|locations| {
+        locations
+          .indices()
+          .map(|(block, idxs)| (block, idxs.iter().copied().max().unwrap_or(0)))
+          .collect()
+      })
+      .unwrap_or_default()
+  }
+
+  /// A `let … else` is a branch on its pattern: the `else` block always
+  /// diverges, and the arm that binds the pattern goes on to the next
+  /// statement, so the branch's join point comes from that arm alone.
+  fn handle_let_else(
+    &mut self,
+    stmt: &'tcx hir::Stmt<'tcx>,
+    local: &'tcx hir::LetStmt<'tcx>,
+    init: &'tcx hir::Expr<'tcx>,
+    els: &'tcx hir::Block<'tcx>,
+  ) {
+    // The initializer runs first, as the condition of an `if let` does.
+    // An initializer that is a plain place, such as `line` in
+    // `let Some(text) = line else { .. }`, has no locations of its own, so
+    // the test starts at the statement's entry, as for an `if let`.
+    self.visit_expr(init);
+    let Some(init_exit) = self
+      .get_node_exit(init.hir_id)
+      .or_else(|| self.get_node_entry(stmt.hir_id))
+    else {
+      log::warn!("let-else has no entry {}", self.prettify_node(stmt.hir_id));
+      self.visit_block(els);
+      return;
+    };
+    invoke_internal!(
+      self,
+      insert,
+      init_exit,
+      self.get_path_hint(),
+      self.span_of(init.hir_id)
+    );
+
+    let Some(els_entry) = self.get_node_entry(els.hir_id) else {
+      log::warn!(
+        "let-else block has no entry {}",
+        self.prettify_node(els.hir_id)
+      );
+      return;
+    };
+    let divergence = Divergence {
+      diverging_entries: vec![els_entry],
+      region: self.region_of(stmt.hir_id),
+      hide_diverging: false,
+    };
+
+    let mapper = self.ir_mapper;
+    let else_span = self.span_of(els.hir_id).shrink_to_lo();
+    let pat_span = self.span_of(local.pat.hir_id).shrink_to_hi();
+    let branch_id = invoke_internal!(
+      self,
+      open_branch,
+      init_exit,
+      move |to: &mut Location| {
+        if mapper.ldominates(*to, els_entry) {
+          *to = els_entry;
+          else_span
+        } else {
+          pat_span
+        }
+      },
+      Some(divergence)
+    );
+
+    self.push_branch_start(els_entry);
+    self.visit_block(els);
+    self.pop_branch_start(els_entry);
+
+    // The arm that matches runs the pattern's bindings on its way to the join
+    // point, and no other step covers them; step it on the `let`'s line.
+    if let Some(join) = self.mir_segments.join_point(branch_id) {
+      invoke_internal!(self, insert, join, None, pat_span);
+    }
+
+    invoke_internal!(self, close_branch, branch_id);
+  }
+
   /// The arms of the branching expression `expr` whose type is `!`, which
   /// never reach its join point. `arms` pairs the node whose entry starts
   /// each arm with the arm's body.
@@ -386,16 +476,7 @@ impl<'a, 'tcx: 'a> HirStepPoints<'a, 'tcx> {
     if diverging_entries.is_empty() {
       return None;
     }
-    let region = self
-      .ir_mapper
-      .get_mir_locations(expr.hir_id, GatherDepth::Nested)
-      .map(|locations| {
-        locations
-          .indices()
-          .map(|(block, idxs)| (block, idxs.iter().copied().max().unwrap_or(0)))
-          .collect()
-      })
-      .unwrap_or_default();
+    let region = self.region_of(expr.hir_id);
     log::debug!(
       "diverging arms of {} enter at {diverging_entries:?}",
       self.prettify_node(expr.hir_id)
@@ -598,7 +679,16 @@ impl<'a, 'tcx: 'a> HirVisitor<'tcx> for HirStepPoints<'a, 'tcx> {
       }
     }
 
-    intravisit::walk_stmt(self, stmt);
+    match stmt.kind {
+      SK::Let(
+        local @ hir::LetStmt {
+          init: Some(init),
+          els: Some(els),
+          ..
+        },
+      ) => self.handle_let_else(stmt, local, init, els),
+      _ => intravisit::walk_stmt(self, stmt),
+    }
 
     // Close the scope before inserting the final steps.
     invoke_internal!(self, close_scope, scope);

@@ -1,0 +1,242 @@
+---
+source: crates/aquascope/tests/stepper.rs
+description: second_word@early_exit_let_else_try.test
+---
+- - 0
+  - - - line
+      - is_live:
+          type: High
+          value: true
+        type_droppable:
+          type: High
+          value: true
+        type_writeable:
+          type: None
+          value: false
+        path_moved:
+          type: None
+        path_uninitialized:
+          type: None
+          value: false
+        loan_read_refined:
+          type: None
+        loan_write_refined:
+          type: None
+        loan_drop_refined:
+          type: None
+        permissions:
+          read:
+            type: High
+            value: true
+          write:
+            type: None
+            value: false
+          drop:
+            type: High
+            value: true
+    - - line@Some.0
+      - is_live:
+          type: High
+          value: true
+        type_droppable:
+          type: High
+          value: true
+        type_writeable:
+          type: None
+          value: false
+        path_moved:
+          type: None
+        path_uninitialized:
+          type: None
+          value: false
+        loan_read_refined:
+          type: None
+        loan_write_refined:
+          type: None
+        loan_drop_refined:
+          type: None
+        permissions:
+          read:
+            type: High
+            value: true
+          write:
+            type: None
+            value: false
+          drop:
+            type: High
+            value: true
+- - 1
+  - - - line
+      - is_live:
+          type: Low
+        type_droppable:
+          type: None
+          value: true
+        type_writeable:
+          type: None
+          value: false
+        path_moved:
+          type: None
+        path_uninitialized:
+          type: None
+          value: false
+        loan_read_refined:
+          type: None
+        loan_write_refined:
+          type: None
+        loan_drop_refined:
+          type: None
+        permissions:
+          read:
+            type: Low
+          write:
+            type: None
+            value: false
+          drop:
+            type: Low
+    - - line@Some.0
+      - is_live:
+          type: Low
+        type_droppable:
+          type: None
+          value: true
+        type_writeable:
+          type: None
+          value: false
+        path_moved:
+          type: None
+        path_uninitialized:
+          type: None
+          value: false
+        loan_read_refined:
+          type: None
+        loan_write_refined:
+          type: None
+        loan_drop_refined:
+          type: None
+        permissions:
+          read:
+            type: Low
+          write:
+            type: None
+            value: false
+          drop:
+            type: Low
+    - - text
+      - is_live:
+          type: High
+          value: true
+        type_droppable:
+          type: None
+          value: true
+        type_writeable:
+          type: None
+          value: false
+        path_moved:
+          type: None
+        path_uninitialized:
+          type: Low
+        loan_read_refined:
+          type: None
+        loan_write_refined:
+          type: None
+        loan_drop_refined:
+          type: None
+        permissions:
+          read:
+            type: High
+            value: true
+          write:
+            type: None
+            value: false
+          drop:
+            type: High
+            value: true
+- - 4
+  - - - n
+      - is_live:
+          type: High
+          value: true
+        type_droppable:
+          type: None
+          value: true
+        type_writeable:
+          type: None
+          value: false
+        path_moved:
+          type: None
+        path_uninitialized:
+          type: Low
+        loan_read_refined:
+          type: None
+        loan_write_refined:
+          type: None
+        loan_drop_refined:
+          type: None
+        permissions:
+          read:
+            type: High
+            value: true
+          write:
+            type: None
+            value: false
+          drop:
+            type: High
+            value: true
+- - 5
+  - - - n
+      - is_live:
+          type: Low
+        type_droppable:
+          type: None
+          value: true
+        type_writeable:
+          type: None
+          value: false
+        path_moved:
+          type: None
+        path_uninitialized:
+          type: None
+          value: false
+        loan_read_refined:
+          type: None
+        loan_write_refined:
+          type: None
+        loan_drop_refined:
+          type: None
+        permissions:
+          read:
+            type: Low
+          write:
+            type: None
+            value: false
+          drop:
+            type: Low
+    - - text
+      - is_live:
+          type: Low
+        type_droppable:
+          type: None
+          value: true
+        type_writeable:
+          type: None
+          value: false
+        path_moved:
+          type: None
+        path_uninitialized:
+          type: None
+          value: false
+        loan_read_refined:
+          type: None
+        loan_write_refined:
+          type: None
+        loan_drop_refined:
+          type: None
+        permissions:
+          read:
+            type: Low
+          write:
+            type: None
+            value: false
+          drop:
+            type: Low

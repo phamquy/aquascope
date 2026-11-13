@@ -1,0 +1,6 @@
+fn first_len(v: Vec<String>, d: String) -> usize {
+  let Some(s) = v.first() else {
+    return d.len();
+  };
+  if s.is_empty() { d.len() } else { s.len() }
+}

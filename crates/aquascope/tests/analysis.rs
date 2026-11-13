@@ -41,7 +41,7 @@ fn both(v: Vec<i32>) -> Option<i32> {
 
 // A branch whose arm leaves the body, by `return`, `?` or a call that never
 // returns, takes its join point from the arms that continue, so the code
-// after it is stepped.
+// after it is stepped. A `let … else` is such a branch on its pattern.
 #[test_log::test]
 fn early_exits_get_steps() {
   let code = r#"
@@ -71,6 +71,20 @@ fn first_len(v: Vec<String>, flag: bool) -> usize {
   }
   let t = s;
   if v.is_empty() { 1 } else { t.len() }
+}
+
+fn let_else(v: Vec<String>, d: String) -> usize {
+  let Some(s) = v.first() else {
+    return d.len();
+  };
+  if s.is_empty() { d.len() } else { s.len() }
+}
+
+fn nested_let_else(v: Vec<Result<i32, String>>, d: i32) -> i32 {
+  let Some(Ok(x)) = v.into_iter().next() else {
+    return d;
+  };
+  if x > d { x } else { d }
 }
 "#;
 

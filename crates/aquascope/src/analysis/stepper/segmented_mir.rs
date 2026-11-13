@@ -224,6 +224,9 @@ pub(super) struct SegmentedMirBuilder<'a, 'tcx: 'a> {
   mapper: &'a IRMapper<'tcx>,
   first_collection: CollectionId,
   root_mappings: BranchSpannerMap<'a>,
+  /// For each branch, the branch whose entry in `root_mappings` it uses: an
+  /// implicit child branch uses its parent's, which may itself be a child.
+  spanner_owner: HashMap<BranchId, BranchId>,
   collections: IndexVec<CollectionId, Collection>,
   branches: IndexVec<BranchId, BranchData>,
   segments: IndexVec<SegmentId, SegmentData>,
@@ -402,6 +405,7 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
       first_collection,
       mapper,
       root_mappings: HashMap::default(),
+      spanner_owner: HashMap::default(),
       collections,
       branches: IndexVec::default(),
       segments: IndexVec::default(),
@@ -541,49 +545,73 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
 
   /// The join point of a branch rooted at `root` when some of its arms
   /// diverge: the first location after the branching expression that every
-  /// continuing arm reaches. `None` when no arm diverges, when every arm
-  /// does, or when the continuing arms do not meet.
+  /// path from `root` passes through unless it enters a diverging arm.
+  /// `None` when no path from `root` continues past the expression.
+  ///
+  /// For a branch whose arms each either diverge or continue, this is the
+  /// first location after the expression that the continuing arms all reach.
+  /// It also covers a test that is itself split, such as the nested pattern
+  /// of `let Some(Ok(x)) = e else { .. }`, whose `else` block is reached
+  /// from both tests.
   fn continuation_after(
     &self,
     root: BasicBlock,
     divergence: &Divergence,
   ) -> Option<Location> {
+    use rustc_middle::mir::TerminatorKind;
     let mapper = &self.mapper;
-    let successors = mapper.cleaned_graph.successors(root).collect::<Vec<_>>();
-    let continuing = successors
+    let body = mapper.cleaned_graph.body();
+
+    let diverging = divergence
+      .diverging_entries
       .iter()
-      .copied()
-      .filter(|s| {
-        !divergence
-          .diverging_entries
-          .iter()
-          .any(|d| mapper.ldominates(s.start_location(), *d))
+      .map(|l| l.block)
+      .collect::<HashSet<_>>();
+    let returns = body
+      .basic_blocks
+      .iter_enumerated()
+      .filter(|(_, data)| {
+        matches!(data.terminator().kind, TerminatorKind::Return)
       })
-      .collect::<Vec<_>>();
+      .map(|(b, _)| b)
+      .collect::<HashSet<_>>();
 
-    log::debug!(
-      "Divergence at {root:?}: continuing successors {continuing:?} of {successors:?}"
-    );
+    // Successors without a `FalseEdge`'s imaginary target, which leads into
+    // another arm: `CleanedBody::successors` keeps it.
+    let successors = |b: BasicBlock| -> Vec<BasicBlock> {
+      match body.basic_blocks[b].terminator().kind {
+        TerminatorKind::FalseEdge { real_target, .. } => vec![real_target],
+        _ => mapper.cleaned_graph.successors(b).collect(),
+      }
+    };
 
-    if continuing.is_empty() || continuing.len() == successors.len() {
+    // Whether a path from `root` reaches a return without entering a
+    // diverging arm or `blocked`, and the distance of each block reached.
+    let search = |blocked: Option<BasicBlock>| {
+      let mut distance = HashMap::<BasicBlock, usize>::default();
+      let mut queue = std::collections::VecDeque::from([(root, 0)]);
+      let mut reaches_return = false;
+      while let Some((b, d)) = queue.pop_front() {
+        if distance.contains_key(&b)
+          || diverging.contains(&b)
+          || Some(b) == blocked
+        {
+          continue;
+        }
+        distance.insert(b, d);
+        reaches_return |= returns.contains(&b);
+        for next in successors(b) {
+          queue.push_back((next, d + 1));
+        }
+      }
+      (reaches_return, distance)
+    };
+
+    let (continues, distance) = search(None);
+    if !continues {
       return None;
     }
 
-    let body = mapper.cleaned_graph.body();
-
-    // A `match` arm can start with a `FalseEdge`, whose imaginary target is
-    // the next arm. `CleanedBody::successors` keeps that edge, so the code
-    // after the `match` does not post-dominate the arm's first block when a
-    // later arm returns. Test from the arm's real target instead.
-    let continuing = continuing
-      .into_iter()
-      .map(|c| match body.basic_blocks[c].terminator().kind {
-        rustc_middle::mir::TerminatorKind::FalseEdge {
-          real_target, ..
-        } => real_target,
-        _ => c,
-      })
-      .collect::<Vec<_>>();
     // The first location of `b` after the expression's own, if any:
     // a block can start with the tail of the expression and go on.
     let after_region = |b: BasicBlock| -> Option<Location> {
@@ -598,23 +626,26 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
       }
     };
 
-    let candidates = depth_first_search(&mapper.cleaned_graph, root)
-      .filter(|&b| {
+    // Blocks after the expression that every continuing path passes
+    // through; the nearest of them comes first on all those paths.
+    let candidates = distance
+      .iter()
+      .filter(|&(&b, _)| {
         b != root
           && mapper.dominates(root, b)
           && !mapper.cleaned_graph.is_false_edge(b)
           && after_region(b).is_some()
-          && continuing.iter().all(|&c| mapper.post_dominates(b, c))
+          && !search(Some(b)).0
       })
+      .map(|(&b, &d)| (d, b))
       .collect::<Vec<_>>();
 
-    log::debug!("Continuation candidates: {candidates:?}");
+    log::debug!("Continuation candidates of {root:?}: {candidates:?}");
 
-    // The first of them: every other candidate post-dominates it.
     candidates
-      .iter()
-      .find(|&&c| candidates.iter().all(|&o| mapper.post_dominates(o, c)))
-      .and_then(|&b| after_region(b))
+      .into_iter()
+      .min()
+      .and_then(|(_, b)| after_region(b))
   }
 
   fn find_next_switchint(&self, current: Location) -> Option<Location> {
@@ -697,13 +728,20 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
         .push(BranchData::new(tid, switch_location, phi_opt));
     let branch = &mut self.branches[bid];
 
-    // Save the Location -> Span mappings under this root BranchId.
-    let get_span = match get_span {
+    // Save the Location -> Span mappings under this root BranchId. A child
+    // of a child branch follows its parent to the branch that holds them.
+    let owner = match get_span {
       GetSpanner::InsertNew(b) => {
         self.root_mappings.insert(bid, b);
-        &self.root_mappings[&bid]
+        bid
       }
-      GetSpanner::GetFrom(bid) => &self.root_mappings[&bid],
+      GetSpanner::GetFrom(parent) => {
+        self.spanner_owner.get(&parent).copied().unwrap_or(parent)
+      }
+    };
+    self.spanner_owner.insert(bid, owner);
+    let Some(get_span) = self.root_mappings.get(&owner) else {
+      bail!("no span mapping for branch {owner:?}");
     };
 
     // Push the new Branch as a control flow kind on
@@ -727,6 +765,21 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
 
     // For each of the target BasicBlocks of the switchInt:
     for sblock in mapper.cleaned_graph.successors(switch_location.block) {
+      // With diverging arms, an arm that starts with a `FalseEdge` starts at
+      // its real target instead: the imaginary edge leads into another arm, so
+      // the steps after the false edge would not post-dominate it.
+      let sblock = match (
+        divergence,
+        &mapper.cleaned_graph.body().basic_blocks[sblock]
+          .terminator()
+          .kind,
+      ) {
+        (
+          Some(_),
+          rustc_middle::mir::TerminatorKind::FalseEdge { real_target, .. },
+        ) => *real_target,
+        _ => sblock,
+      };
       log::debug!("Adding segment to switch successor: {sblock:?}");
 
       // 1. insert the split segment into the branch
@@ -808,12 +861,20 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
     Ok(())
   }
 
+  /// The join point of a branch, where its continuing arms meet, if it has one.
+  pub fn join_point(&self, bid: BranchId) -> Option<Location> {
+    let reach = self.branches[bid].reach;
+    (reach.from != reach.to).then_some(reach.to)
+  }
+
   /// Closes a branch of control flow with an origin root of `location`.
   ///
   /// Contrary to previous implementations, the function does not implicitly
   /// add a new segment for all split steps.
   pub fn close_branch(&mut self, bid: BranchId) -> Result<()> {
-    let table_root = self.branches[bid].table_id;
+    // The representative of the branch's table: after an implicit child
+    // branch is unioned with it, its own id need not be.
+    let table_root = self.branch_roots.find(self.branches[bid].table_id);
 
     let branches_to_close = self
       .branches

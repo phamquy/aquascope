@@ -1,0 +1,7 @@
+fn second_word(line: Option<String>) -> Result<usize, std::num::ParseIntError> {
+  let Some(text) = line else {
+    return Ok(0);
+  };
+  let n: usize = text.trim().parse()?;
+  if n > 0 { Ok(n) } else { Ok(text.len()) }
+}

@@ -1,0 +1,9 @@
+fn double_first(v: Vec<Result<i32, String>>, d: i32) -> i32 {
+  let Some(Ok(x)) = v.into_iter().next() else {
+    return d;
+  };
+  let Some(y) = x.checked_mul(2) else {
+    return d;
+  };
+  if y > d { y } else { d }
+}
