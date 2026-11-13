@@ -167,3 +167,45 @@ fn bump_all(v: &mut Vec<i32>) -> i32 {
     });
   });
 }
+
+// A plain `loop` with `if … { break; }` makes the stepper panic (#68). The
+// panic is caught like the stepper's errors: that body keeps its boundaries
+// and gets no steps, and the other bodies of the crate are analysed as usual.
+#[test_log::test]
+fn stepper_panic_keeps_boundaries() {
+  let code = r#"
+fn count(v: &Vec<i32>) -> usize {
+  let mut i = 0;
+  loop {
+    if i >= v.len() {
+      break;
+    }
+    i += 1;
+  }
+  i
+}
+
+fn after(s: String) -> usize {
+  let t = s;
+  t.len()
+}
+"#;
+
+  test_utils::compile_normal(code, |tcx| {
+    test_utils::for_each_body(tcx, |body_id, _| {
+      let name = tcx
+        .hir_opt_name(tcx.hir_body_owner(body_id))
+        .map(|s| s.to_string());
+      let output = match AquascopeAnalysis::run(tcx, body_id, false) {
+        Ok(output) => output,
+        Err(e) => panic!("the analysis of {name:?} failed: {e:?}"),
+      };
+      assert!(!output.boundaries.is_empty(), "{name:?}: no boundaries");
+      match name.as_deref() {
+        Some("count") => assert!(output.steps.is_empty(), "count: steps"),
+        Some("after") => assert!(!output.steps.is_empty(), "after: no steps"),
+        other => panic!("unexpected body {other:?}"),
+      }
+    });
+  });
+}

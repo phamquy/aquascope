@@ -369,11 +369,23 @@ impl<'tcx> AquascopeAnalysis<'tcx> {
 
     let boundaries = compute_permission_boundaries(&analysis_ctxt)?;
 
-    // The stepper cannot yet segment every control-flow shape, for example a
-    // branch that leaves the body early followed by another branch (#157).
-    // The boundaries do not depend on the steps, so keep them and return no
-    // steps rather than failing the whole body.
-    let steps = compute_permission_steps(&analysis_ctxt).unwrap_or_else(|e| {
+    // The stepper cannot yet segment every control-flow shape, for example
+    // `if … { break; }` in a `loop` followed by more code. The boundaries do
+    // not depend on the steps, so keep them and return no steps rather than
+    // failing the whole body. A panic in the stepper is caught the same way:
+    // left uncaught, it aborts the analysis of every body in the crate.
+    let steps = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+      compute_permission_steps(&analysis_ctxt)
+    }))
+    .unwrap_or_else(|payload| {
+      let message = payload
+        .downcast_ref::<&str>()
+        .map(|s| (*s).to_string())
+        .or_else(|| payload.downcast_ref::<String>().cloned())
+        .unwrap_or_else(|| String::from("no message"));
+      Err(anyhow::anyhow!("the stepper panicked: {message}"))
+    })
+    .unwrap_or_else(|e| {
       log::warn!("could not compute the permission steps: {e}");
       Vec::new()
     });
