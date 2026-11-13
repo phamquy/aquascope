@@ -17,7 +17,10 @@ use rustc_data_structures::fx::{FxHashMap as HashMap, FxHashSet as HashSet};
 use rustc_hir::{BodyId, Mutability};
 use rustc_index::IndexVec;
 use rustc_middle::{
-  mir::{Place, ProjectionElem},
+  mir::{
+    Location, Place, ProjectionElem,
+    visit::{PlaceContext, Visitor},
+  },
   ty::{TyCtxt, TypingEnv},
 };
 use rustc_mir_dataflow::move_paths::MoveData;
@@ -168,6 +171,20 @@ impl Default for Output<AquascopeFacts> {
   }
 }
 
+/// Every place the MIR body mentions, as written.
+struct UsedPlaces<'tcx>(Vec<Place<'tcx>>);
+
+impl<'tcx> Visitor<'tcx> for UsedPlaces<'tcx> {
+  fn visit_place(
+    &mut self,
+    place: &Place<'tcx>,
+    _context: PlaceContext,
+    _location: Location,
+  ) {
+    self.0.push(*place);
+  }
+}
+
 /// Populate the [`Output`] facts in the current [`PermissionsCtxt`].
 // TODO(gavinleroy) lots of data is kept around below for clarity, but
 // this could definitely be optimized (for performance and memory consumption).
@@ -180,10 +197,25 @@ pub fn derive_permission_facts(ctxt: &mut PermissionsCtxt) {
   // We consider all place that are either:
   // 1. Internal to a local declaration.
   // 2. A path considered moveable by rustc.
-  let places = body
+  // 3. A place the body uses. `all_places` stops expanding a recursive type
+  //    (a `Node` holding an `Option<Box<Node>>`), so a place such as
+  //    `(*(*r).left as Some).0` of a recursive `Node` is missing from it, and
+  //    the permissions of that expression could not be answered.
+  let mut places = body
     .all_places(tcx, def_id.to_def_id())
     .chain(ctxt.move_data.move_paths.iter().map(|v| v.place))
     .collect::<Vec<_>>();
+  let known = places
+    .iter()
+    .map(|place| place.normalize(tcx, def_id.to_def_id()))
+    .collect::<std::collections::HashSet<_>>();
+  let mut used = UsedPlaces(Vec::new());
+  used.visit_body(body);
+  let mut added = std::collections::HashSet::new();
+  places.extend(used.0.into_iter().filter(|place| {
+    let place = place.normalize(tcx, def_id.to_def_id());
+    !known.contains(&place) && added.insert(place)
+  }));
 
   // Normalize all places and get the associated AquascopeFacts::Point,
   // any MIR place that is not initialized here could cause a panic later

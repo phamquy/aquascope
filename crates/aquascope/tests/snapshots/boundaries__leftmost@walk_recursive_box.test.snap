@@ -1,0 +1,55 @@
+---
+source: crates/aquascope/tests/boundaries.rs
+description: leftmost@walk_recursive_box.test
+---
+- location:
+    line: 6
+    column: 25
+  expected:
+    read: true
+    write: true
+    drop: false
+  actual:
+    read: true
+    write: true
+    drop: true
+  data:
+    type_droppable: true
+    type_writeable: true
+    type_copyable: false
+    is_live: true
+    path_uninitialized: false
+- location:
+    line: 7
+    column: 30
+  expected:
+    read: true
+    write: false
+    drop: true
+  actual:
+    read: true
+    write: true
+    drop: false
+  data:
+    type_droppable: false
+    type_writeable: true
+    type_copyable: false
+    is_live: true
+    path_uninitialized: false
+- location:
+    line: 8
+    column: 14
+  expected:
+    read: true
+    write: true
+    drop: false
+  actual:
+    read: true
+    write: true
+    drop: false
+  data:
+    type_droppable: false
+    type_writeable: true
+    type_copyable: false
+    is_live: true
+    path_uninitialized: false

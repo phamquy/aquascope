@@ -1,0 +1,12 @@
+struct Node {
+  key: i32,
+  left: Option<Box<Node>>,
+}
+
+fn leftmost(mut min: Box<Node>) {
+  let mut min_ref = &mut min;
+  while let Some(ref mut l) = min_ref.left {
+    min_ref = l;
+  }
+  min_ref.key = 0;
+}
