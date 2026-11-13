@@ -1,0 +1,5 @@
+fn parse_max(a: &str, b: &str) -> Result<i32, std::num::ParseIntError> {
+  let x: i32 = a.parse()?;
+  let y: i32 = b.parse()?;
+  if x > y { Ok(x) } else { Ok(y) }
+}

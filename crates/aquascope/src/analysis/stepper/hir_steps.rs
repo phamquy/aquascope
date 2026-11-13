@@ -367,9 +367,50 @@ impl<'a, 'tcx: 'a> HirStepPoints<'a, 'tcx> {
     }
   }
 
+  /// The arms of the branching expression `expr` whose type is `!`, which
+  /// never reach its join point. `arms` pairs the node whose entry starts
+  /// each arm with the arm's body.
+  fn divergence(
+    &self,
+    expr: &'tcx hir::Expr,
+    arms: &[(HirId, &'tcx hir::Expr)],
+  ) -> Option<Divergence> {
+    let typeck = self.tcx.typeck_body(self.body_id);
+    let diverging_entries = arms
+      .iter()
+      .filter(|(_, body)| {
+        typeck.expr_ty_opt(body).is_some_and(|ty| ty.is_never())
+      })
+      .filter_map(|(entry_id, _)| self.get_node_entry(*entry_id))
+      .collect::<Vec<_>>();
+    if diverging_entries.is_empty() {
+      return None;
+    }
+    let region = self
+      .ir_mapper
+      .get_mir_locations(expr.hir_id, GatherDepth::Nested)
+      .map(|locations| {
+        locations
+          .indices()
+          .map(|(block, idxs)| (block, idxs.iter().copied().max().unwrap_or(0)))
+          .collect()
+      })
+      .unwrap_or_default();
+    log::debug!(
+      "diverging arms of {} enter at {diverging_entries:?}",
+      self.prettify_node(expr.hir_id)
+    );
+    Some(Divergence {
+      diverging_entries,
+      region,
+      hide_diverging: false,
+    })
+  }
+
   // Factored out of the Visitor because this same logic is needed for
   // EK::If and while loop desugarings, just with a different location
-  // to span mapping.
+  // to span mapping. `allow_divergence` is false for the desugarings, whose
+  // `break` arm diverges but is the loop's own exit.
   fn handle_expr_if(
     &mut self,
     expr: &'tcx hir::Expr,
@@ -377,6 +418,7 @@ impl<'a, 'tcx: 'a> HirStepPoints<'a, 'tcx> {
     then: &'tcx hir::Expr,
     else_opt: Option<&'tcx hir::Expr>,
     entry_locs_to_spans: HashMap<Location, Span>,
+    allow_divergence: bool,
   ) {
     log::debug!(
       "visiting EXPR-IF\n\tCND: {}\n\t\tTHEN: {}\n\t\tELSE: {}",
@@ -387,6 +429,14 @@ impl<'a, 'tcx: 'a> HirStepPoints<'a, 'tcx> {
     let expr_id = expr.hir_id;
     let Some(cnd_exit) = self.expr_condition_prelude(cnd, expr) else {
       return;
+    };
+
+    let divergence = if allow_divergence {
+      let mut arms = vec![(then.hir_id, then)];
+      arms.extend(else_opt.map(|els| (els.hir_id, els)));
+      self.divergence(expr, &arms)
+    } else {
+      None
     };
 
     let mapper = self.ir_mapper;
@@ -411,7 +461,8 @@ impl<'a, 'tcx: 'a> HirStepPoints<'a, 'tcx> {
             }
           })
           .unwrap_or(default_span)
-      }
+      },
+      divergence
     );
 
     if let Some(then_entry) = self.get_node_entry(then.hir_id) {
@@ -447,10 +498,28 @@ impl<'a, 'tcx: 'a> HirStepPoints<'a, 'tcx> {
     cnd: &'tcx hir::Expr,
     arms: &'tcx [hir::Arm],
     entry_locs_to_spans: HashMap<Location, Span>,
+    allow_divergence: bool,
   ) {
+    use hir::MatchSource;
     let expr_id = expr.hir_id;
     let Some(cnd_exit) = self.expr_condition_prelude(cnd, expr) else {
       return;
+    };
+    let divergence = if allow_divergence {
+      let arm_bodies = arms
+        .iter()
+        .map(|arm| (arm.hir_id, arm.body))
+        .collect::<Vec<_>>();
+      self.divergence(expr, &arm_bodies).map(|d| Divergence {
+        // The error path of `?` is left out of the tables.
+        hide_diverging: matches!(
+          expr.kind,
+          hir::ExprKind::Match(_, _, MatchSource::TryDesugar(_))
+        ),
+        ..d
+      })
+    } else {
+      None
     };
     let mapper = self.ir_mapper;
     let branch_id = invoke_internal!(
@@ -470,7 +539,8 @@ impl<'a, 'tcx: 'a> HirStepPoints<'a, 'tcx> {
             }
           })
           .unwrap_or(Span::default())
-      }
+      },
+      divergence
     );
 
     for arm in arms {
@@ -558,7 +628,7 @@ impl<'a, 'tcx: 'a> HirVisitor<'tcx> for HirStepPoints<'a, 'tcx> {
           entry_to_spans.insert(else_entry, else_span);
         }
 
-        self.handle_expr_if(expr, cnd, then, else_opt, entry_to_spans);
+        self.handle_expr_if(expr, cnd, then, else_opt, entry_to_spans, true);
       }
 
       // HACK: Special cases for ForLoop and While desugarings.
@@ -619,7 +689,7 @@ impl<'a, 'tcx: 'a> HirVisitor<'tcx> for HirStepPoints<'a, 'tcx> {
           entry_to_spans.insert(else_entry, else_span);
         }
 
-        self.handle_expr_if(expr, cnd, then, Some(els), entry_to_spans);
+        self.handle_expr_if(expr, cnd, then, Some(els), entry_to_spans, false);
       }
 
       EK::Loop(
@@ -658,7 +728,7 @@ impl<'a, 'tcx: 'a> HirVisitor<'tcx> for HirStepPoints<'a, 'tcx> {
         }
 
         #[allow(clippy::needless_borrow)]
-        self.handle_expr_match(expr, cnd, &arms, entry_to_spans);
+        self.handle_expr_match(expr, cnd, &arms, entry_to_spans, false);
       }
 
       // NOTE: if a match condition doesn't produce a `switchInt`, there
@@ -720,7 +790,7 @@ impl<'a, 'tcx: 'a> HirVisitor<'tcx> for HirStepPoints<'a, 'tcx> {
           })
           .collect::<HashMap<_, _>>();
 
-        self.handle_expr_match(expr, cnd, arms, entry_to_spans);
+        self.handle_expr_match(expr, cnd, arms, entry_to_spans, true);
       }
       _ => {
         intravisit::walk_expr(self, expr);

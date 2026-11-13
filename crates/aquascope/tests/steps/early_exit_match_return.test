@@ -1,0 +1,7 @@
+fn pick(o: Option<String>, d: String) -> usize {
+  let s = match o {
+    None => return d.len(),
+    Some(s) => s,
+  };
+  if s.is_empty() { d.len() } else { s.len() }
+}

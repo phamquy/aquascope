@@ -1,0 +1,8 @@
+fn moved_only_when_returning(s: String, flag: bool) -> usize {
+  if flag {
+    let t = s;
+    return t.len();
+  }
+  let n = s.len();
+  if n > 2 { n } else { 0 }
+}

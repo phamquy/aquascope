@@ -1,0 +1,21 @@
+struct Node {
+  key: i32,
+  left: Option<Box<Node>>,
+  right: Option<Box<Node>>,
+}
+
+fn next<'a>(stack: &mut Vec<(&'a Node, bool)>) -> Option<&'a i32> {
+  while let Some((node, ready)) = stack.pop() {
+    if ready {
+      return Some(&node.key);
+    }
+    if let Some(right) = node.right.as_deref() {
+      stack.push((right, false));
+    }
+    stack.push((node, true));
+    if let Some(left) = node.left.as_deref() {
+      stack.push((left, false));
+    }
+  }
+  None
+}

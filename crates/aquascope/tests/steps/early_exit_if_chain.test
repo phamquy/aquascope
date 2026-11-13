@@ -1,0 +1,19 @@
+struct Node {
+  key: i32,
+  left: Option<Box<Node>>,
+  right: Option<Box<Node>>,
+}
+
+fn remove_rec(node: &mut Option<Box<Node>>, key: i32) -> bool {
+  if let Some(n) = node {
+    if key < n.key {
+      return remove_rec(&mut n.left, key);
+    } else if key > n.key {
+      return remove_rec(&mut n.right, key);
+    } else {
+      *node = n.left.take();
+      return true;
+    }
+  }
+  false
+}

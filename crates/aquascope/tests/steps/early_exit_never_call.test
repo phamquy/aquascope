@@ -1,0 +1,7 @@
+fn get_len(o: Option<String>, d: String) -> usize {
+  let s = match o {
+    Some(s) => s,
+    None => std::process::exit(1),
+  };
+  if s.is_empty() { d.len() } else { s.len() }
+}

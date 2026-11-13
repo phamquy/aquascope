@@ -1,0 +1,12 @@
+fn first_len(v: Vec<String>, flag: bool) -> usize {
+  let s = String::from("a");
+  if flag {
+    return 0;
+  }
+  let t = s;
+  if v.is_empty() {
+    1
+  } else {
+    t.len()
+  }
+}

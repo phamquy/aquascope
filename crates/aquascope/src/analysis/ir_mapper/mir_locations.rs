@@ -10,6 +10,11 @@ pub struct MirOrderedLocations {
 }
 
 impl MirOrderedLocations {
+  /// Every location, as a block and its sorted statement indices.
+  pub fn indices(&self) -> impl Iterator<Item = (BasicBlock, &[usize])> + '_ {
+    self.locations.iter().map(|(b, v)| (*b, v.as_slice()))
+  }
+
   pub fn entry_location(&self) -> Option<Location> {
     self.entry_block.map(|block| {
       let statement_index = *self

@@ -146,6 +146,8 @@ impl<'a, 'tcx: 'a> TableBuilder<'a, 'tcx> {
       reach,
       splits,
       nested,
+      hidden,
+      hidden_nested,
       ..
     } = self.mir.get_branch(bid);
 
@@ -159,11 +161,11 @@ impl<'a, 'tcx: 'a> TableBuilder<'a, 'tcx> {
     );
 
     let mut temp_middle = Tables::default();
-    for &sid in splits.iter() {
+    for &sid in splits.iter().filter(|sid| !hidden.contains(*sid)) {
       self.insert_segment(&mut temp_middle, sid);
     }
 
-    for &cid in nested.iter() {
+    for &cid in nested.iter().filter(|cid| !hidden_nested.contains(*cid)) {
       self.insert_collection(&mut temp_middle, cid);
     }
 
@@ -194,6 +196,29 @@ impl<'a, 'tcx: 'a> TableBuilder<'a, 'tcx> {
       data: attached_here,
     });
   }
+}
+
+/// True for the variable `?` binds in the `Continue(val) => val` arm it
+/// desugars to. Its own span is the user's expression, so
+/// `is_source_visible` keeps it, but its pattern's span comes from the `?`
+/// desugaring. Other desugarings, such as `for`, bind the user's own
+/// variables and are kept.
+fn is_bound_by_desugaring(
+  body: &rustc_middle::mir::Body,
+  local: Local,
+) -> bool {
+  use rustc_middle::mir::{
+    BindingForm, ClearCrossCrate, LocalInfo, VarBindingForm,
+  };
+  use rustc_span::DesugaringKind;
+  let ClearCrossCrate::Set(info) = &body.local_decls[local].local_info else {
+    return false;
+  };
+  matches!(
+    &**info,
+    LocalInfo::User(BindingForm::Var(VarBindingForm { pat_span, .. }))
+      if pat_span.desugaring_kind() == Some(DesugaringKind::QuestionMark)
+  )
 }
 
 // Prettify, means:
@@ -250,7 +275,9 @@ pub(super) fn prettify_permission_steps<'tcx>(
       let entries = data
         .into_iter()
         .filter(|(place, diff)| {
-          place.is_source_visible(tcx, body) && should_keep(diff)
+          place.is_source_visible(tcx, body)
+            && !is_bound_by_desugaring(body, place.local)
+            && should_keep(diff)
         })
         .collect::<Vec<_>>();
 

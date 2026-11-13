@@ -179,6 +179,11 @@ pub(super) struct BranchData {
   pub(super) joins: Vec<SegmentId>,
 
   pub(super) nested: Vec<CollectionId>,
+
+  /// Split segments and nested collections of arms whose steps are left out
+  /// of the tables (see [`Divergence::hide_diverging`]).
+  pub(super) hidden: HashSet<SegmentId>,
+  pub(super) hidden_nested: HashSet<CollectionId>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -249,6 +254,8 @@ impl BranchData {
       splits: Vec::default(),
       joins: Vec::default(),
       nested: Vec::default(),
+      hidden: HashSet::default(),
+      hidden_nested: HashSet::default(),
     }
   }
 }
@@ -348,6 +355,25 @@ impl SegmentedMir {
   ) -> impl Iterator<Item = ScopeId> + '_ {
     self.scopes.reachable_from(scope).into_iter()
   }
+}
+
+/// Arms of a branch that leave the enclosing code (with `return`, `break`,
+/// `?` or a call that never returns) and so never reach its join point.
+///
+/// Without this, the join point is the least post-dominator of the
+/// `switchInt`, which for a branch with a returning arm lies past the
+/// function's last statement, so the code after the branch cannot be stepped.
+#[derive(Debug, Default)]
+pub(super) struct Divergence {
+  /// Entry locations of the arms whose type is `!`.
+  pub(super) diverging_entries: Vec<Location>,
+  /// For each block holding locations of the branching expression itself,
+  /// the last statement index among them.
+  pub(super) region: HashMap<BasicBlock, usize>,
+  /// Leave the diverging arms out of the tables, as for the error path of
+  /// `?`, which would otherwise show every live variable as dropped on the
+  /// line of the `?`.
+  pub(super) hide_diverging: bool,
 }
 
 enum GetSpanner<'a> {
@@ -513,6 +539,84 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
       .copied()
   }
 
+  /// The join point of a branch rooted at `root` when some of its arms
+  /// diverge: the first location after the branching expression that every
+  /// continuing arm reaches. `None` when no arm diverges, when every arm
+  /// does, or when the continuing arms do not meet.
+  fn continuation_after(
+    &self,
+    root: BasicBlock,
+    divergence: &Divergence,
+  ) -> Option<Location> {
+    let mapper = &self.mapper;
+    let successors = mapper.cleaned_graph.successors(root).collect::<Vec<_>>();
+    let continuing = successors
+      .iter()
+      .copied()
+      .filter(|s| {
+        !divergence
+          .diverging_entries
+          .iter()
+          .any(|d| mapper.ldominates(s.start_location(), *d))
+      })
+      .collect::<Vec<_>>();
+
+    log::debug!(
+      "Divergence at {root:?}: continuing successors {continuing:?} of {successors:?}"
+    );
+
+    if continuing.is_empty() || continuing.len() == successors.len() {
+      return None;
+    }
+
+    let body = mapper.cleaned_graph.body();
+
+    // A `match` arm can start with a `FalseEdge`, whose imaginary target is
+    // the next arm. `CleanedBody::successors` keeps that edge, so the code
+    // after the `match` does not post-dominate the arm's first block when a
+    // later arm returns. Test from the arm's real target instead.
+    let continuing = continuing
+      .into_iter()
+      .map(|c| match body.basic_blocks[c].terminator().kind {
+        rustc_middle::mir::TerminatorKind::FalseEdge {
+          real_target, ..
+        } => real_target,
+        _ => c,
+      })
+      .collect::<Vec<_>>();
+    // The first location of `b` after the expression's own, if any:
+    // a block can start with the tail of the expression and go on.
+    let after_region = |b: BasicBlock| -> Option<Location> {
+      let terminator = body.basic_blocks[b].statements.len();
+      match divergence.region.get(&b) {
+        None => Some(b.start_location()),
+        Some(&last) if last < terminator => Some(Location {
+          block: b,
+          statement_index: last + 1,
+        }),
+        Some(_) => None,
+      }
+    };
+
+    let candidates = depth_first_search(&mapper.cleaned_graph, root)
+      .filter(|&b| {
+        b != root
+          && mapper.dominates(root, b)
+          && !mapper.cleaned_graph.is_false_edge(b)
+          && after_region(b).is_some()
+          && continuing.iter().all(|&c| mapper.post_dominates(b, c))
+      })
+      .collect::<Vec<_>>();
+
+    log::debug!("Continuation candidates: {candidates:?}");
+
+    // The first of them: every other candidate post-dominates it.
+    candidates
+      .iter()
+      .find(|&&c| candidates.iter().all(|&o| mapper.post_dominates(o, c)))
+      .and_then(|&b| after_region(b))
+  }
+
   fn find_next_switchint(&self, current: Location) -> Option<Location> {
     use rustc_middle::mir::{Terminator, TerminatorKind as TK};
     let body = self.mapper.cleaned_graph.body();
@@ -548,6 +652,7 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
     &mut self,
     location: Location,
     get_span: GetSpanner<'a>,
+    divergence: Option<&Divergence>,
   ) -> Result<BranchId> {
     let mapper = &self.mapper;
     let scope = self.current_scope();
@@ -558,9 +663,13 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
     log::debug!("switchInt located at: {switch_location:?}");
 
     // The convergence of all branching paths.
-    let phi_opt = self
-      .least_post_dominator(switch_location.block)
-      .map(|bb| bb.start_location());
+    let phi_opt = divergence
+      .and_then(|d| self.continuation_after(switch_location.block, d))
+      .or_else(|| {
+        self
+          .least_post_dominator(switch_location.block)
+          .map(|bb| bb.start_location())
+      });
 
     log::debug!("Chosen least-post-dominator: {phi_opt:?}");
 
@@ -640,6 +749,18 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
       // 3. Store this new collection in the branch middle section.
       branch.nested.push(cid);
 
+      // An arm whose steps are left out of the tables.
+      if divergence.is_some_and(|d| {
+        d.hide_diverging
+          && d
+            .diverging_entries
+            .iter()
+            .any(|e| mapper.ldominates(sblock.start_location(), *e))
+      }) {
+        branch.hidden.insert(sid);
+        branch.hidden_nested.insert(cid);
+      }
+
       // 4. Put a new collection builder on the open collection stack.
       self.processing.push(CollectionBuilder {
         collection: cid,
@@ -658,11 +779,16 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
     &mut self,
     location: Location,
     get_span: impl Fn(&mut Location) -> Span + 'a,
+    divergence: Option<Divergence>,
   ) -> Result<BranchId> {
     log::debug!("opening user initiated branch at {location:?}");
     log::debug!("open branches BEFORE {:#?}", self.processing);
 
-    let r = self.mk_branch(location, GetSpanner::InsertNew(Box::new(get_span)));
+    let r = self.mk_branch(
+      location,
+      GetSpanner::InsertNew(Box::new(get_span)),
+      divergence.as_ref(),
+    );
 
     log::debug!("open branches AFTER {:#?}", self.processing);
     r
@@ -675,7 +801,7 @@ impl<'a, 'tcx: 'a> SegmentedMirBuilder<'a, 'tcx> {
   ) -> Result<()> {
     log::debug!("opening implicit branch at {root:?}");
 
-    let child = self.mk_branch(root, GetSpanner::GetFrom(parent))?;
+    let child = self.mk_branch(root, GetSpanner::GetFrom(parent), None)?;
     let parent_tid = self.branches[parent].table_id;
     let child_tid = self.branches[child].table_id;
     self.branch_roots.union(parent_tid, child_tid);

@@ -1,0 +1,20 @@
+pub struct Config {
+  pub query: String,
+  pub path: String,
+  pub ignore_case: bool,
+}
+
+pub fn parse(args: impl Iterator<Item = String>) -> Result<Config, String> {
+  let mut args = args.peekable();
+  let query = match args.next() {
+    Some(arg) => arg,
+    None => return Err("Missing query".into()),
+  };
+  let path = match args.next() {
+    Some(arg) => arg,
+    None => return Err("Missing path".into()),
+  };
+  let ignore_case = args.any(|arg| arg == "-i");
+
+  Ok(Config { query, path, ignore_case })
+}
