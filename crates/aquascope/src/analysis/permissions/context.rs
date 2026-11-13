@@ -101,6 +101,21 @@ impl<'tcx> PermissionsCtxt<'tcx> {
       })
   }
 
+  /// Like [`Self::place_to_path`], but `None` for a place Aquascope does not track.
+  ///
+  /// The tracked places stop expanding a recursive type (a `Node` that holds an
+  /// `Option<Box<Node>>`), while the interior paths of a moved place keep going,
+  /// so the two can disagree.
+  pub fn try_place_to_path(&self, p: &Place<'tcx>) -> Option<Path> {
+    let p = p.normalize(self.tcx, self.def_id);
+    self
+      .rev_lookup
+      .get(&p.local)?
+      .iter()
+      .find(|path| self.path_to_place(**path) == p)
+      .copied()
+  }
+
   pub fn path_to_place(&self, p: Path) -> Place<'tcx> {
     self.place_data[p]
   }

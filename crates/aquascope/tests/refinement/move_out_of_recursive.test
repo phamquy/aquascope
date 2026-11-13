@@ -1,0 +1,13 @@
+struct Node {
+  value: i32,
+  next: Option<Box<Node>>,
+}
+
+fn foo(node: Box<Node>) {
+  let _a = &`[node R-D]`;
+
+  let next = node.next;
+
+  let _a = &`[node.value R--]`;
+  let _a = &`[next R-D]`;
+}

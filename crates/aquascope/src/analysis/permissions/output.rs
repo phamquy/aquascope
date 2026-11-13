@@ -237,9 +237,10 @@ pub fn derive_permission_facts(ctxt: &mut PermissionsCtxt) {
         place
           .interior_paths(tcx, body, def_id.to_def_id())
           .into_iter()
-          .map(move |place| {
-            let path = ictxt.place_to_path(&place);
-            (move_idx, path)
+          // An interior path of a recursive type may be untracked; skip it.
+          .filter_map(move |place| {
+            let path = ictxt.try_place_to_path(&place)?;
+            Some((move_idx, path))
           })
           // Moving a path makes its parent *moveable* paths partially initialized.
           .chain(move_path.parents(&ictxt.move_data.move_paths).map(
