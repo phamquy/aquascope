@@ -469,7 +469,7 @@ pub fn for_each_body<'tcx>(
     let def_id = tcx.hir_body_owner_def_id(body_id);
     errors::track_body_diagnostics(def_id);
     let body_with_facts =
-      borrowck_facts::get_body_with_borrowck_facts(tcx, def_id);
+      crate::analysis::get_body_with_borrowck_facts(tcx, def_id);
 
     log::debug!("{}", body_with_facts.body.to_string(tcx).unwrap());
 

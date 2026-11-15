@@ -209,3 +209,41 @@ fn after(s: String) -> usize {
     });
   });
 }
+
+// A closure inside a closure made rustc panic in borrowck ("no entry found for
+// key"): the inner closure was borrow-checked through the outer one, which is
+// not a typeck root. Every body, closures included, is now analysed.
+#[test_log::test]
+fn nested_closure_is_analysed() {
+  let code = r#"
+fn sum_chunks(data: &[u64]) -> u64 {
+  let mut sum = 0;
+  let mut add = |chunk: &[u64]| {
+    let total = || chunk.iter().sum::<u64>();
+    sum += total();
+  };
+  for chunk in data.chunks(2) {
+    add(chunk);
+  }
+  sum
+}
+"#;
+
+  test_utils::compile_normal(code, |tcx| {
+    let mut bodies = 0;
+    test_utils::for_each_body(tcx, |body_id, _| {
+      let name = tcx
+        .hir_opt_name(tcx.hir_body_owner(body_id))
+        .map(|s| s.to_string());
+      let output = match AquascopeAnalysis::run(tcx, body_id, false) {
+        Ok(output) => output,
+        Err(e) => panic!("the analysis of {name:?} failed: {e:?}"),
+      };
+      if name.as_deref() == Some("sum_chunks") {
+        assert!(!output.boundaries.is_empty(), "sum_chunks: no boundaries");
+      }
+      bodies += 1;
+    });
+    assert_eq!(bodies, 3, "sum_chunks and its two closures");
+  });
+}

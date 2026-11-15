@@ -23,7 +23,7 @@ use permissions::{
 };
 use rustc_borrowck::consumers::BodyWithBorrowckFacts;
 use rustc_data_structures::fx::FxHashMap;
-use rustc_hir::BodyId;
+use rustc_hir::{BodyId, def_id::LocalDefId};
 use rustc_middle::ty::TyCtxt;
 use rustc_span::{
   self, FileName, RemapPathScopeComponents, Span, source_map::SourceMap,
@@ -333,10 +333,28 @@ pub struct AnalysisOutput {
   pub move_regions: MoveRegions,
 }
 
+/// The body of `def_id` with its borrowck facts.
+///
+/// rustc_utils borrow-checks a closure through its immediate parent. For a
+/// closure inside another closure that parent is not a typeck root, so the
+/// inner closure is never checked and rustc panics ("no entry found for key").
+/// Borrow-checking the typeck root first stores the facts of every body nested
+/// in it, and the lookup for `def_id` then finds them.
+pub fn get_body_with_borrowck_facts<'tcx>(
+  tcx: TyCtxt<'tcx>,
+  def_id: LocalDefId,
+) -> &'tcx BodyWithBorrowckFacts<'tcx> {
+  let root = tcx.typeck_root_def_id_local(def_id);
+  if root != def_id {
+    borrowck_facts::get_body_with_borrowck_facts(tcx, root);
+  }
+  borrowck_facts::get_body_with_borrowck_facts(tcx, def_id)
+}
+
 impl<'tcx> AquascopeAnalysis<'tcx> {
   pub fn new(tcx: TyCtxt<'tcx>, body_id: BodyId) -> Self {
     let def_id = tcx.hir_body_owner_def_id(body_id);
-    let bwf = borrowck_facts::get_body_with_borrowck_facts(tcx, def_id);
+    let bwf = get_body_with_borrowck_facts(tcx, def_id);
     let permissions = compute_permissions(tcx, body_id, bwf);
     let body = &permissions.body_with_facts.body;
 
