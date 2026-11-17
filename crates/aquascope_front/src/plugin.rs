@@ -1,7 +1,7 @@
 use std::{
   borrow::Cow,
-  env,
-  path::PathBuf,
+  env, fs,
+  path::{Path, PathBuf},
   process::{Command, exit},
   time::Instant,
 };
@@ -127,6 +127,45 @@ fn selected_binary_crate(cargo: &Command) -> Option<String> {
   None
 }
 
+/// Where a build for `host` keeps the compiled files of the library that
+/// `cargo`, rustc_plugin's command for analysing one, selects, and the start
+/// of their names. Cargo reuses a library compiled earlier, such as one built
+/// as a dependency of a binary run alone, instead of running the plugin on it,
+/// so rustc_plugin removes such files first; but it removes them from the
+/// folder of a build for no target, `debug/deps`, while the interpreter's
+/// build for the host keeps them under the host's folder.
+fn host_library_metadata(
+  cargo: &Command,
+  host: &str,
+) -> Option<(PathBuf, String)> {
+  let args = cargo.get_args().collect::<Vec<_>>();
+  if !args.iter().any(|arg| *arg == "--lib") {
+    return None;
+  }
+  let after = |flag: &str| {
+    let at = args.iter().position(|arg| *arg == flag)?;
+    args.get(at + 1)
+  };
+  let target_dir = Path::new(after("--target-dir")?);
+  // `-p <package>:<version>`, and rustc names the library's files
+  // `lib<crate>-<hash>.<extension>`.
+  let package = after("-p")?.to_str()?.split(':').next()?;
+  let deps = target_dir.join(host).join("debug").join("deps");
+  Some((deps, format!("lib{}-", package.replace('-', "_"))))
+}
+
+/// Removes the files of `dir` whose names start with `prefix`.
+fn remove_files_starting_with(dir: &Path, prefix: &str) {
+  let Ok(entries) = fs::read_dir(dir) else {
+    return;
+  };
+  for entry in entries.flatten() {
+    if entry.file_name().to_string_lossy().starts_with(prefix) {
+      let _ = fs::remove_file(entry.path());
+    }
+  }
+}
+
 /// The compiler flags Cargo would take from the environment.
 fn existing_rustflags() -> Vec<String> {
   match env::var("CARGO_ENCODED_RUSTFLAGS") {
@@ -211,11 +250,11 @@ impl RustcPlugin for AquascopePlugin {
     if let (AquascopeCommand::Interpreter { .. }, Ok(sysroot)) =
       (&args.command, env::var("MIRI_SYSROOT"))
     {
-      let (target, flags) = miri_build(
-        &sysroot,
-        rustc_session::config::host_tuple(),
-        existing_rustflags(),
-      );
+      let host = rustc_session::config::host_tuple();
+      if let Some((deps, prefix)) = host_library_metadata(cargo, host) {
+        remove_files_starting_with(&deps, &prefix);
+      }
+      let (target, flags) = miri_build(&sysroot, host, existing_rustflags());
       cargo.args(target).env("CARGO_ENCODED_RUSTFLAGS", flags);
     }
   }
@@ -397,6 +436,25 @@ mod tests {
     let mut cargo = Command::new("cargo");
     cargo.args(["check", "-q", "-p", "demo:0.1.0", "--lib"]);
     assert_eq!(selected_binary_crate(&cargo), None);
+  }
+
+  #[test]
+  fn a_librarys_files_are_found_in_the_hosts_folder() {
+    let host = "aarch64-apple-darwin";
+    let mut cargo = Command::new("cargo");
+    cargo.args(["check", "--target-dir", "/t/plugin-nightly"]);
+    cargo.args(["-q", "-p", "lib-and-bins:0.1.0", "--lib"]);
+    let (deps, prefix) = host_library_metadata(&cargo, host).unwrap();
+    assert_eq!(
+      deps,
+      Path::new("/t/plugin-nightly/aarch64-apple-darwin/debug/deps")
+    );
+    assert_eq!(prefix, "liblib_and_bins-");
+
+    let mut cargo = Command::new("cargo");
+    cargo.args(["check", "--target-dir", "/t/plugin-nightly"]);
+    cargo.args(["-q", "-p", "lib-and-bins:0.1.0", "--bin", "tool"]);
+    assert_eq!(host_library_metadata(&cargo, host), None);
   }
 
   #[test]
