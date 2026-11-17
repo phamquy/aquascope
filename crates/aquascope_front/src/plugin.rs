@@ -106,6 +106,27 @@ fn miri_build(
   (["--target".to_owned(), host.to_owned()], flags.join("\x1f"))
 }
 
+/// rustc_plugin's variable naming the crate its driver analyses; the driver
+/// leaves every compile whose `--crate-name` differs to rustc alone.
+const SPECIFIC_CRATE: &str = "SPECIFIC_CRATE";
+
+/// The crate name rustc gives the binary that `--crate-of` selected, from
+/// the `--bin <name>` that rustc_plugin passed to Cargo, if any. rustc_plugin
+/// sets `SPECIFIC_CRATE` to the binary's package name instead, so a binary
+/// named otherwise, such as `src/bin/tool.rs` or each binary of a package of
+/// exercises, would never be analysed: Cargo would check it and print nothing.
+fn selected_binary_crate(cargo: &Command) -> Option<String> {
+  let mut args = cargo.get_args();
+  while let Some(arg) = args.next() {
+    if arg == "--bin" {
+      return args
+        .next()
+        .map(|name| name.to_string_lossy().replace('-', "_"));
+    }
+  }
+  None
+}
+
 /// The compiler flags Cargo would take from the environment.
 fn existing_rustflags() -> Vec<String> {
   match env::var("CARGO_ENCODED_RUSTFLAGS") {
@@ -181,6 +202,10 @@ impl RustcPlugin for AquascopePlugin {
   }
 
   fn modify_cargo(&self, cargo: &mut Command, args: &Self::Args) {
+    if let Some(krate) = selected_binary_crate(cargo) {
+      cargo.env(SPECIFIC_CRATE, krate);
+    }
+
     // Without Miri's standard library, the interpreter has nothing to run
     // with, so only then is every crate built for it.
     if let (AquascopeCommand::Interpreter { .. }, Ok(sysroot)) =
@@ -361,6 +386,17 @@ mod tests {
     let args =
       AquascopePluginArgs::parse_from(["cargo-aquascope", "permissions"]);
     assert!(matches!(args.crate_filter(), CrateFilter::OnlyWorkspace));
+  }
+
+  #[test]
+  fn a_selected_binary_is_analysed_under_its_own_crate_name() {
+    let mut cargo = Command::new("cargo");
+    cargo.args(["check", "-q", "-p", "exercises:0.1.0", "--bin", "strings-4"]);
+    assert_eq!(selected_binary_crate(&cargo).as_deref(), Some("strings_4"));
+
+    let mut cargo = Command::new("cargo");
+    cargo.args(["check", "-q", "-p", "demo:0.1.0", "--lib"]);
+    assert_eq!(selected_binary_crate(&cargo), None);
   }
 
   #[test]
