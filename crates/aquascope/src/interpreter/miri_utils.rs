@@ -4,7 +4,7 @@ use miri::{
 };
 use rustc_abi::{FieldIdx, FieldsShape, Size};
 use rustc_middle::{
-  mir::{Local, PlaceElem},
+  mir::{Local, PlaceElem, interpret::Pointer},
   ty::{AdtKind, FieldDef, TyKind, layout::TyAndLayout},
 };
 
@@ -47,12 +47,14 @@ where
 
 struct AddressLocator<'a, 'tcx> {
   ecx: &'a InterpCx<'tcx, miri::MiriMachine<'tcx>>,
+  /// The start of the allocation that `target` is an offset into.
+  start: Pointer<Option<miri::Provenance>>,
   target: u64,
   segments: Vec<PlaceElem<'tcx>>,
 }
 
 impl<'tcx> AddressLocator<'_, 'tcx> {
-  fn locate(&mut self, layout: TyAndLayout<'tcx>, mut offset: u64) {
+  fn locate(&mut self, layout: TyAndLayout<'tcx>, offset: u64) {
     if offset == self.target {
       return;
     }
@@ -65,22 +67,26 @@ impl<'tcx> AddressLocator<'_, 'tcx> {
         match adt_def.adt_kind() {
           AdtKind::Struct => match name.as_str() {
             "String" | "Vec" => {}
-            _ => {
-              for (i, _field) in adt_def.all_fields().enumerate() {
-                let field = layout.field(self.ecx, i);
-                if offset + field.size.bytes() > self.target {
-                  self
-                    .segments
-                    .push(PlaceElem::Field(FieldIdx::from_usize(i), field.ty));
-                  self.locate(field, offset);
-                  break;
-                }
-
-                offset += field.size.bytes();
-              }
-            }
+            _ => self.locate_in_fields(layout, offset),
           },
-          AdtKind::Enum => todo!(),
+          // An enum's fields are those of the variant its value holds, which
+          // its tag in memory says, in the variant's own layout. They are
+          // numbered as the interpreter reads an enum's value: the variant's
+          // fields alone.
+          AdtKind::Enum => {
+            let at = self
+              .start
+              .wrapping_offset(Size::from_bytes(offset), self.ecx);
+            let place = self.ecx.ptr_to_mplace(at, layout);
+            if let Some(variant) =
+              self.ecx.read_discriminant(&place).discard_err()
+            {
+              self.locate_in_fields(
+                layout.for_variant(self.ecx, variant),
+                offset,
+              );
+            }
+          }
           _ => {}
         }
       }
@@ -101,27 +107,32 @@ impl<'tcx> AddressLocator<'_, 'tcx> {
         self.locate(elem, offset + array_offset);
       }
 
-      TyKind::Tuple(tys) => {
-        // dbg!(("tuple", offset, target));
-        for i in 0 .. tys.len() {
-          let field = layout.field(self.ecx, i);
-          if offset + field.size.bytes() > self.target {
-            self
-              .segments
-              .push(PlaceElem::Field(FieldIdx::from_usize(i), field.ty));
-            self.locate(field, offset);
-            break;
-          }
-
-          offset += field.size.bytes();
-        }
-      }
+      TyKind::Tuple(_) => self.locate_in_fields(layout, offset),
 
       _ if ty.is_primitive() || ty.is_any_ptr() => {
         panic!("offset {offset} != target {}", self.target)
       }
 
       ty => unimplemented!("{ty:#?}"),
+    }
+  }
+
+  /// Goes into the field of `layout`, a value at `offset` in the allocation,
+  /// that holds the target. The fields are found at their offsets in the
+  /// layout, since rustc reorders the fields of structs, tuples and variants
+  /// and pads them; a target in no field, such as in padding, stays at the
+  /// value as a whole.
+  fn locate_in_fields(&mut self, layout: TyAndLayout<'tcx>, offset: u64) {
+    for i in 0 .. layout.fields.count() {
+      let start = offset + layout.fields.offset(i).bytes();
+      let field = layout.field(self.ecx, i);
+      if (start .. start + field.size.bytes()).contains(&self.target) {
+        self
+          .segments
+          .push(PlaceElem::Field(FieldIdx::from_usize(i), field.ty));
+        self.locate(field, start);
+        return;
+      }
     }
   }
 }
@@ -136,6 +147,9 @@ pub fn locate_address_in_type<'tcx>(
   // dbg!((alloc_layout, alloc_size, mplace, target));
   let mut locator = AddressLocator {
     ecx,
+    start: mplace
+      .ptr()
+      .wrapping_signed_offset(-(target.bytes() as i64), ecx),
     target: target.bytes(),
     segments: Vec::new(),
   };

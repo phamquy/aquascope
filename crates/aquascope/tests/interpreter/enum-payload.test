@@ -1,0 +1,28 @@
+struct Point {
+  x: i32,
+  y: i32,
+}
+
+struct Holder {
+  tag: u8,
+  point: Option<Point>,
+}
+
+fn show(p: &Point) -> i32 {
+  p.x + p.y
+}
+
+fn main() {
+  let optional_point = Some(Point { x: 100, y: 200 });
+  match &optional_point {
+    Some(p) => {
+      show(p);
+    }
+    None => {}
+  }
+  if let Some(q) = &optional_point {
+    show(q);
+  }
+  let holder = Holder { tag: 1, point: Some(Point { x: 1, y: 2 }) };
+  let r = holder.point.as_ref();
+}
