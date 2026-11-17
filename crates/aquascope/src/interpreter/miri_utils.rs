@@ -153,15 +153,17 @@ pub fn locate_address_in_type<'tcx>(
     // dbg!((array_elem_size, offset, index));
 
     let segment = match mplace.meta() {
-      MemPlaceMeta::Meta(meta) => {
-        let end_offset = meta.to_u64().unwrap();
-        let to = index + end_offset / array_elem_size - 1;
-        PlaceElem::Subslice {
+      // A slice's metadata is its number of elements, not its size in bytes,
+      // which only a slice of bytes, such as a `str`, has the same.
+      // An empty slice has no last element, so it is located at its first.
+      MemPlaceMeta::Meta(meta) => match meta.to_u64().unwrap() {
+        0 => PlaceElem::Index(Local::from_usize(index as usize)),
+        len => PlaceElem::Subslice {
           from: index,
-          to,
+          to: index + len - 1,
           from_end: false,
-        }
-      }
+        },
+      },
       MemPlaceMeta::None => PlaceElem::Index(Local::from_usize(index as usize)),
     };
 

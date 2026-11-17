@@ -1,0 +1,1120 @@
+---
+source: crates/aquascope/tests/interpreter.rs
+description: slice-of-values.test
+---
+steps:
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 5
+              column: 2
+            end:
+              line: 5
+              column: 24
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Adt
+                value:
+                  name: Vec
+                  variant: ~
+                  fields:
+                    - - buf
+                      - type: Adt
+                        value:
+                          name: RawVec
+                          variant: ~
+                          fields:
+                            - - inner
+                              - type: Adt
+                                value:
+                                  name: RawVecInner
+                                  variant: ~
+                                  fields:
+                                    - - ptr
+                                      - type: Adt
+                                        value:
+                                          name: Unique
+                                          variant: ~
+                                          fields:
+                                            - - pointer
+                                              - type: Adt
+                                                value:
+                                                  name: NonNull
+                                                  variant: ~
+                                                  fields:
+                                                    - - pointer
+                                                      - type: Pointer
+                                                        value:
+                                                          path:
+                                                            segment:
+                                                              type: Heap
+                                                              value:
+                                                                index: 0
+                                                            parts:
+                                                              - type: Index
+                                                                value: 0
+                                                          range: ~
+                                                  alloc_kind: ~
+                                          alloc_kind: ~
+                                    - - cap
+                                      - type: Adt
+                                        value:
+                                          name: UsizeNoHighBit
+                                          variant: ~
+                                          fields:
+                                            - - "0"
+                                              - type: Uint
+                                                value: 3
+                                          alloc_kind: ~
+                                  alloc_kind: ~
+                          alloc_kind: ~
+                    - - len
+                      - type: Uint
+                        value: 3
+                  alloc_kind:
+                    type: Vec
+                    value:
+                      len: 3
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Int
+                value: 1
+              - type: Int
+                value: 2
+              - type: Int
+                value: 3
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 6
+              column: 2
+            end:
+              line: 6
+              column: 23
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Adt
+                value:
+                  name: Vec
+                  variant: ~
+                  fields:
+                    - - buf
+                      - type: Adt
+                        value:
+                          name: RawVec
+                          variant: ~
+                          fields:
+                            - - inner
+                              - type: Adt
+                                value:
+                                  name: RawVecInner
+                                  variant: ~
+                                  fields:
+                                    - - ptr
+                                      - type: Adt
+                                        value:
+                                          name: Unique
+                                          variant: ~
+                                          fields:
+                                            - - pointer
+                                              - type: Adt
+                                                value:
+                                                  name: NonNull
+                                                  variant: ~
+                                                  fields:
+                                                    - - pointer
+                                                      - type: Pointer
+                                                        value:
+                                                          path:
+                                                            segment:
+                                                              type: Heap
+                                                              value:
+                                                                index: 0
+                                                            parts:
+                                                              - type: Index
+                                                                value: 0
+                                                          range: ~
+                                                  alloc_kind: ~
+                                          alloc_kind: ~
+                                    - - cap
+                                      - type: Adt
+                                        value:
+                                          name: UsizeNoHighBit
+                                          variant: ~
+                                          fields:
+                                            - - "0"
+                                              - type: Uint
+                                                value: 3
+                                          alloc_kind: ~
+                                  alloc_kind: ~
+                          alloc_kind: ~
+                    - - len
+                      - type: Uint
+                        value: 3
+                  alloc_kind:
+                    type: Vec
+                    value:
+                      len: 3
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Int
+                value: 1
+              - type: Int
+                value: 2
+              - type: Int
+                value: 3
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 6
+              column: 2
+            end:
+              line: 6
+              column: 23
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Adt
+                value:
+                  name: Vec
+                  variant: ~
+                  fields:
+                    - - buf
+                      - type: Adt
+                        value:
+                          name: RawVec
+                          variant: ~
+                          fields:
+                            - - inner
+                              - type: Adt
+                                value:
+                                  name: RawVecInner
+                                  variant: ~
+                                  fields:
+                                    - - ptr
+                                      - type: Adt
+                                        value:
+                                          name: Unique
+                                          variant: ~
+                                          fields:
+                                            - - pointer
+                                              - type: Adt
+                                                value:
+                                                  name: NonNull
+                                                  variant: ~
+                                                  fields:
+                                                    - - pointer
+                                                      - type: Pointer
+                                                        value:
+                                                          path:
+                                                            segment:
+                                                              type: Heap
+                                                              value:
+                                                                index: 0
+                                                            parts:
+                                                              - type: Index
+                                                                value: 0
+                                                          range: ~
+                                                  alloc_kind: ~
+                                          alloc_kind: ~
+                                    - - cap
+                                      - type: Adt
+                                        value:
+                                          name: UsizeNoHighBit
+                                          variant: ~
+                                          fields:
+                                            - - "0"
+                                              - type: Uint
+                                                value: 3
+                                          alloc_kind: ~
+                                  alloc_kind: ~
+                          alloc_kind: ~
+                    - - len
+                      - type: Uint
+                        value: 3
+                  alloc_kind:
+                    type: Vec
+                    value:
+                      len: 3
+              moved_paths: []
+        - name: sum
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 0
+              column: 24
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 1
+                          - 2
+                  range: 2
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Int
+                value: 1
+              - type: Int
+                value: 2
+              - type: Int
+                value: 3
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 6
+              column: 2
+            end:
+              line: 6
+              column: 23
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Adt
+                value:
+                  name: Vec
+                  variant: ~
+                  fields:
+                    - - buf
+                      - type: Adt
+                        value:
+                          name: RawVec
+                          variant: ~
+                          fields:
+                            - - inner
+                              - type: Adt
+                                value:
+                                  name: RawVecInner
+                                  variant: ~
+                                  fields:
+                                    - - ptr
+                                      - type: Adt
+                                        value:
+                                          name: Unique
+                                          variant: ~
+                                          fields:
+                                            - - pointer
+                                              - type: Adt
+                                                value:
+                                                  name: NonNull
+                                                  variant: ~
+                                                  fields:
+                                                    - - pointer
+                                                      - type: Pointer
+                                                        value:
+                                                          path:
+                                                            segment:
+                                                              type: Heap
+                                                              value:
+                                                                index: 0
+                                                            parts:
+                                                              - type: Index
+                                                                value: 0
+                                                          range: ~
+                                                  alloc_kind: ~
+                                          alloc_kind: ~
+                                    - - cap
+                                      - type: Adt
+                                        value:
+                                          name: UsizeNoHighBit
+                                          variant: ~
+                                          fields:
+                                            - - "0"
+                                              - type: Uint
+                                                value: 3
+                                          alloc_kind: ~
+                                  alloc_kind: ~
+                          alloc_kind: ~
+                    - - len
+                      - type: Uint
+                        value: 3
+                  alloc_kind:
+                    type: Vec
+                    value:
+                      len: 3
+              moved_paths: []
+        - name: sum
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 1
+              column: 2
+            end:
+              line: 1
+              column: 13
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: (return)
+              value:
+                type: Int
+                value: 5
+              moved_paths: []
+            - name: v
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 1
+                          - 2
+                  range: 2
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Int
+                value: 1
+              - type: Int
+                value: 2
+              - type: Int
+                value: 3
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 6
+              column: 2
+            end:
+              line: 6
+              column: 23
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Adt
+                value:
+                  name: Vec
+                  variant: ~
+                  fields:
+                    - - buf
+                      - type: Adt
+                        value:
+                          name: RawVec
+                          variant: ~
+                          fields:
+                            - - inner
+                              - type: Adt
+                                value:
+                                  name: RawVecInner
+                                  variant: ~
+                                  fields:
+                                    - - ptr
+                                      - type: Adt
+                                        value:
+                                          name: Unique
+                                          variant: ~
+                                          fields:
+                                            - - pointer
+                                              - type: Adt
+                                                value:
+                                                  name: NonNull
+                                                  variant: ~
+                                                  fields:
+                                                    - - pointer
+                                                      - type: Pointer
+                                                        value:
+                                                          path:
+                                                            segment:
+                                                              type: Heap
+                                                              value:
+                                                                index: 0
+                                                            parts:
+                                                              - type: Index
+                                                                value: 0
+                                                          range: ~
+                                                  alloc_kind: ~
+                                          alloc_kind: ~
+                                    - - cap
+                                      - type: Adt
+                                        value:
+                                          name: UsizeNoHighBit
+                                          variant: ~
+                                          fields:
+                                            - - "0"
+                                              - type: Uint
+                                                value: 3
+                                          alloc_kind: ~
+                                  alloc_kind: ~
+                          alloc_kind: ~
+                    - - len
+                      - type: Uint
+                        value: 3
+                  alloc_kind:
+                    type: Vec
+                    value:
+                      len: 3
+              moved_paths: []
+            - name: n
+              value:
+                type: Int
+                value: 5
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Int
+                value: 1
+              - type: Int
+                value: 2
+              - type: Int
+                value: 3
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 7
+              column: 2
+            end:
+              line: 7
+              column: 18
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Adt
+                value:
+                  name: Vec
+                  variant: ~
+                  fields:
+                    - - buf
+                      - type: Adt
+                        value:
+                          name: RawVec
+                          variant: ~
+                          fields:
+                            - - inner
+                              - type: Adt
+                                value:
+                                  name: RawVecInner
+                                  variant: ~
+                                  fields:
+                                    - - ptr
+                                      - type: Adt
+                                        value:
+                                          name: Unique
+                                          variant: ~
+                                          fields:
+                                            - - pointer
+                                              - type: Adt
+                                                value:
+                                                  name: NonNull
+                                                  variant: ~
+                                                  fields:
+                                                    - - pointer
+                                                      - type: Pointer
+                                                        value:
+                                                          path:
+                                                            segment:
+                                                              type: Heap
+                                                              value:
+                                                                index: 0
+                                                            parts:
+                                                              - type: Index
+                                                                value: 0
+                                                          range: ~
+                                                  alloc_kind: ~
+                                          alloc_kind: ~
+                                    - - cap
+                                      - type: Adt
+                                        value:
+                                          name: UsizeNoHighBit
+                                          variant: ~
+                                          fields:
+                                            - - "0"
+                                              - type: Uint
+                                                value: 3
+                                          alloc_kind: ~
+                                  alloc_kind: ~
+                          alloc_kind: ~
+                    - - len
+                      - type: Uint
+                        value: 3
+                  alloc_kind:
+                    type: Vec
+                    value:
+                      len: 3
+              moved_paths: []
+            - name: n
+              value:
+                type: Int
+                value: 5
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Int
+                value: 1
+              - type: Int
+                value: 2
+              - type: Int
+                value: 3
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 7
+              column: 2
+            end:
+              line: 7
+              column: 18
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Adt
+                value:
+                  name: Vec
+                  variant: ~
+                  fields:
+                    - - buf
+                      - type: Adt
+                        value:
+                          name: RawVec
+                          variant: ~
+                          fields:
+                            - - inner
+                              - type: Adt
+                                value:
+                                  name: RawVecInner
+                                  variant: ~
+                                  fields:
+                                    - - ptr
+                                      - type: Adt
+                                        value:
+                                          name: Unique
+                                          variant: ~
+                                          fields:
+                                            - - pointer
+                                              - type: Adt
+                                                value:
+                                                  name: NonNull
+                                                  variant: ~
+                                                  fields:
+                                                    - - pointer
+                                                      - type: Pointer
+                                                        value:
+                                                          path:
+                                                            segment:
+                                                              type: Heap
+                                                              value:
+                                                                index: 0
+                                                            parts:
+                                                              - type: Index
+                                                                value: 0
+                                                          range: ~
+                                                  alloc_kind: ~
+                                          alloc_kind: ~
+                                    - - cap
+                                      - type: Adt
+                                        value:
+                                          name: UsizeNoHighBit
+                                          variant: ~
+                                          fields:
+                                            - - "0"
+                                              - type: Uint
+                                                value: 3
+                                          alloc_kind: ~
+                                  alloc_kind: ~
+                          alloc_kind: ~
+                    - - len
+                      - type: Uint
+                        value: 3
+                  alloc_kind:
+                    type: Vec
+                    value:
+                      len: 3
+              moved_paths: []
+            - name: n
+              value:
+                type: Int
+                value: 5
+              moved_paths: []
+        - name: sum
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 0
+              column: 24
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 0
+                          - 2
+                  range: 3
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Int
+                value: 1
+              - type: Int
+                value: 2
+              - type: Int
+                value: 3
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 7
+              column: 2
+            end:
+              line: 7
+              column: 18
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Adt
+                value:
+                  name: Vec
+                  variant: ~
+                  fields:
+                    - - buf
+                      - type: Adt
+                        value:
+                          name: RawVec
+                          variant: ~
+                          fields:
+                            - - inner
+                              - type: Adt
+                                value:
+                                  name: RawVecInner
+                                  variant: ~
+                                  fields:
+                                    - - ptr
+                                      - type: Adt
+                                        value:
+                                          name: Unique
+                                          variant: ~
+                                          fields:
+                                            - - pointer
+                                              - type: Adt
+                                                value:
+                                                  name: NonNull
+                                                  variant: ~
+                                                  fields:
+                                                    - - pointer
+                                                      - type: Pointer
+                                                        value:
+                                                          path:
+                                                            segment:
+                                                              type: Heap
+                                                              value:
+                                                                index: 0
+                                                            parts:
+                                                              - type: Index
+                                                                value: 0
+                                                          range: ~
+                                                  alloc_kind: ~
+                                          alloc_kind: ~
+                                    - - cap
+                                      - type: Adt
+                                        value:
+                                          name: UsizeNoHighBit
+                                          variant: ~
+                                          fields:
+                                            - - "0"
+                                              - type: Uint
+                                                value: 3
+                                          alloc_kind: ~
+                                  alloc_kind: ~
+                          alloc_kind: ~
+                    - - len
+                      - type: Uint
+                        value: 3
+                  alloc_kind:
+                    type: Vec
+                    value:
+                      len: 3
+              moved_paths: []
+            - name: n
+              value:
+                type: Int
+                value: 5
+              moved_paths: []
+        - name: sum
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 1
+              column: 2
+            end:
+              line: 1
+              column: 13
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: (return)
+              value:
+                type: Int
+                value: 3
+              moved_paths: []
+            - name: v
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 0
+                          - 2
+                  range: 3
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Int
+                value: 1
+              - type: Int
+                value: 2
+              - type: Int
+                value: 3
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 7
+              column: 2
+            end:
+              line: 7
+              column: 18
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: v
+              value:
+                type: Adt
+                value:
+                  name: Vec
+                  variant: ~
+                  fields:
+                    - - buf
+                      - type: Adt
+                        value:
+                          name: RawVec
+                          variant: ~
+                          fields:
+                            - - inner
+                              - type: Adt
+                                value:
+                                  name: RawVecInner
+                                  variant: ~
+                                  fields:
+                                    - - ptr
+                                      - type: Adt
+                                        value:
+                                          name: Unique
+                                          variant: ~
+                                          fields:
+                                            - - pointer
+                                              - type: Adt
+                                                value:
+                                                  name: NonNull
+                                                  variant: ~
+                                                  fields:
+                                                    - - pointer
+                                                      - type: Pointer
+                                                        value:
+                                                          path:
+                                                            segment:
+                                                              type: Heap
+                                                              value:
+                                                                index: 0
+                                                            parts:
+                                                              - type: Index
+                                                                value: 0
+                                                          range: ~
+                                                  alloc_kind: ~
+                                          alloc_kind: ~
+                                    - - cap
+                                      - type: Adt
+                                        value:
+                                          name: UsizeNoHighBit
+                                          variant: ~
+                                          fields:
+                                            - - "0"
+                                              - type: Uint
+                                                value: 3
+                                          alloc_kind: ~
+                                  alloc_kind: ~
+                          alloc_kind: ~
+                    - - len
+                      - type: Uint
+                        value: 3
+                  alloc_kind:
+                    type: Vec
+                    value:
+                      len: 3
+              moved_paths: []
+            - name: n
+              value:
+                type: Int
+                value: 5
+              moved_paths: []
+            - name: m
+              value:
+                type: Int
+                value: 3
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Int
+                value: 1
+              - type: Int
+                value: 2
+              - type: Int
+                value: 3
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 8
+              column: 0
+            end:
+              line: 8
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+result:
+  type: Success
