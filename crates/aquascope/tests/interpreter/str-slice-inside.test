@@ -1,0 +1,8 @@
+fn show(s: &str) {
+  let n = s.len();
+}
+
+fn main() {
+  show("  hi ".trim());
+  show(&String::from("abc")[1..]);
+}

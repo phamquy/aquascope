@@ -1,0 +1,561 @@
+---
+source: crates/aquascope/tests/interpreter.rs
+description: str-slice-inside.test
+---
+steps:
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 5
+              column: 2
+            end:
+              line: 5
+              column: 23
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 5
+              column: 2
+            end:
+              line: 5
+              column: 23
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+        - name: show
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 0
+              column: 16
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: s
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 2
+                          - 3
+                  range: 2
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Char
+                value: 32
+              - type: Char
+                value: 32
+              - type: Char
+                value: 104
+              - type: Char
+                value: 105
+              - type: Char
+                value: 32
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 5
+              column: 2
+            end:
+              line: 5
+              column: 23
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+        - name: show
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 1
+              column: 2
+            end:
+              line: 1
+              column: 18
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: s
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 2
+                          - 3
+                  range: 2
+              moved_paths: []
+            - name: n
+              value:
+                type: Uint
+                value: 2
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Char
+                value: 32
+              - type: Char
+                value: 32
+              - type: Char
+                value: 104
+              - type: Char
+                value: 105
+              - type: Char
+                value: 32
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 5
+              column: 2
+            end:
+              line: 5
+              column: 23
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+        - name: show
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 2
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: s
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 2
+                          - 3
+                  range: 2
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Char
+                value: 32
+              - type: Char
+                value: 32
+              - type: Char
+                value: 104
+              - type: Char
+                value: 105
+              - type: Char
+                value: 32
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 5
+              column: 2
+            end:
+              line: 5
+              column: 23
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 6
+              column: 2
+            end:
+              line: 6
+              column: 34
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 6
+              column: 2
+            end:
+              line: 6
+              column: 34
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+        - name: show
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 0
+              column: 16
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: s
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 1
+                          - 2
+                  range: 2
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Char
+                value: 97
+              - type: Char
+                value: 98
+              - type: Char
+                value: 99
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 6
+              column: 2
+            end:
+              line: 6
+              column: 34
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+        - name: show
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 1
+              column: 2
+            end:
+              line: 1
+              column: 18
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: s
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 1
+                          - 2
+                  range: 2
+              moved_paths: []
+            - name: n
+              value:
+                type: Uint
+                value: 2
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Char
+                value: 97
+              - type: Char
+                value: 98
+              - type: Char
+                value: 99
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 6
+              column: 2
+            end:
+              line: 6
+              column: 34
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+        - name: show
+          body_span:
+            start:
+              line: 0
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 2
+              column: 0
+            end:
+              line: 2
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: s
+              value:
+                type: Pointer
+                value:
+                  path:
+                    segment:
+                      type: Heap
+                      value:
+                        index: 0
+                    parts:
+                      - type: Subslice
+                        value:
+                          - 1
+                          - 2
+                  range: 2
+              moved_paths: []
+    heap:
+      locations:
+        - type: Array
+          value:
+            type: All
+            value:
+              - type: Char
+                value: 97
+              - type: Char
+                value: 98
+              - type: Char
+                value: 99
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 7
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 6
+              column: 2
+            end:
+              line: 6
+              column: 34
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+result:
+  type: Success

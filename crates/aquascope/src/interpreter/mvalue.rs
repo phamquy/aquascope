@@ -164,9 +164,14 @@ impl<'tcx> Reader<'_, 'tcx> {
       .collect()
   }
 
+  /// Reads the allocation that `base`, a pointer `offset` bytes into an
+  /// allocation of `alloc_size` bytes, is the first to reach.
   fn read_alloc(
     &mut self,
     base: miri::MPlaceTy<'tcx>,
+    offset: Size,
+    alloc_size: Size,
+    global: bool,
   ) -> InterpResult<'tcx, MValue> {
     let el_ty = base.layout.ty;
     let stride = base.layout.size;
@@ -174,11 +179,27 @@ impl<'tcx> Reader<'_, 'tcx> {
     // literal or a `&str` into an array, is read as its characters. Reading
     // it as a value would read the same pointer again, until the stack
     // overflows.
+    //
+    // The characters are read from the allocation's start, since the
+    // pointer's path counts from there: a `&str` can start partway in, as the
+    // one `"  hi ".trim()` returns does. A global allocation, such as a string
+    // literal's, is read whole; any other only to the end of the `str`, as the
+    // bytes after a `String`'s length may not be written.
     if el_ty.is_str() {
-      let len = base.meta().unwrap_meta().to_target_usize(&self.ev.ecx)?;
-      let u8_ty = self.ev.ecx.tcx.types.u8;
+      let ecx = &self.ev.ecx;
+      let len = base.meta().unwrap_meta().to_target_usize(ecx)?;
+      let end = if global {
+        alloc_size.bytes()
+      } else {
+        offset.bytes() + len
+      };
+      let u8_ty = ecx.tcx.types.u8;
+      let start = base
+        .ptr()
+        .wrapping_signed_offset(-(offset.bytes() as i64), ecx);
+      let start = ecx.ptr_to_mplace(start, ecx.layout_of(u8_ty)?);
       let MValue::Array(bytes) =
-        self.read_array(base, Size::from_bytes(1), len, u8_ty)?
+        self.read_array(start, Size::from_bytes(1), end, u8_ty)?
       else {
         unreachable!()
       };
@@ -239,10 +260,6 @@ impl<'tcx> Reader<'_, 'tcx> {
       .contains_key(&alloc_id);
 
     if !alloc_discovered {
-      // If we haven't seen this allocation, then use `postprocess` to convert
-      // the raw memory value into an understandable MValue.
-      let mvalue = self.read_alloc(mplace.clone())?;
-
       // Get the kind of memory we're looking at (either stack or heap)
       // from the allocation metadata.
       // A global allocation, such as a string literal's, is in the machine's
@@ -257,6 +274,13 @@ impl<'tcx> Reader<'_, 'tcx> {
         .map_or(MemoryKind::Machine(MiriMemoryKind::Global), |(kind, _)| {
           *kind
         });
+
+      // If we haven't seen this allocation, then use `postprocess` to convert
+      // the raw memory value into an understandable MValue.
+      let global =
+        matches!(memory_kind, MemoryKind::Machine(MiriMemoryKind::Global));
+      let mvalue =
+        self.read_alloc(mplace.clone(), offset, alloc_info.size, global)?;
 
       // Generate a corresponding `MMemorySegment` that locates the base allocation,
       // and a `TyAndLayout` that describes the allocation's entire layout.
