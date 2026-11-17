@@ -203,11 +203,11 @@ impl<'tcx> Reader<'_, 'tcx> {
       else {
         unreachable!()
       };
-      return interp_ok(MValue::Array(bytes.map(|byte| {
-        let MValue::Uint(c) = byte else {
-          unreachable!()
-        };
-        MValue::Char(c as usize)
+      // The bytes before the `str` may never have been written, as in the
+      // buffer `itoa` formats a number into; they stay `Unallocated`.
+      return interp_ok(MValue::Array(bytes.map(|byte| match byte {
+        MValue::Uint(c) => MValue::Char(c as usize),
+        unwritten => unwritten,
       })));
     }
     interp_ok(match self.heap_alloc_kinds.last() {

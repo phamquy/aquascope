@@ -1,3 +1,5 @@
+use std::mem::MaybeUninit;
+
 fn show(s: &str) {
   let n = s.len();
 }
@@ -5,4 +7,15 @@ fn show(s: &str) {
 fn main() {
   show("  hi ".trim());
   show(&String::from("abc")[1..]);
+  // A str at the end of a buffer whose start is never written, as itoa
+  // formats a number.
+  let mut buf = [MaybeUninit::<u8>::uninit(); 4];
+  buf[2].write(b'o');
+  buf[3].write(b'k');
+  show(unsafe {
+    std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+      buf.as_ptr().add(2).cast::<u8>(),
+      2,
+    ))
+  });
 }

@@ -8,20 +8,20 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 5
+              line: 7
               column: 2
             end:
-              line: 5
+              line: 7
               column: 23
             filename:
               private_use_as_methods_instead: 0
@@ -33,20 +33,20 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 5
+              line: 7
               column: 2
             end:
-              line: 5
+              line: 7
               column: 23
             filename:
               private_use_as_methods_instead: 0
@@ -54,20 +54,20 @@ steps:
         - name: show
           body_span:
             start:
-              line: 0
+              line: 2
               column: 0
             end:
-              line: 2
+              line: 4
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 0
+              line: 2
               column: 0
             end:
-              line: 0
+              line: 2
               column: 16
             filename:
               private_use_as_methods_instead: 0
@@ -109,20 +109,20 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 5
+              line: 7
               column: 2
             end:
-              line: 5
+              line: 7
               column: 23
             filename:
               private_use_as_methods_instead: 0
@@ -130,20 +130,20 @@ steps:
         - name: show
           body_span:
             start:
-              line: 0
+              line: 2
               column: 0
             end:
-              line: 2
+              line: 4
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 1
+              line: 3
               column: 2
             end:
-              line: 1
+              line: 3
               column: 18
             filename:
               private_use_as_methods_instead: 0
@@ -190,20 +190,20 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 5
+              line: 7
               column: 2
             end:
-              line: 5
+              line: 7
               column: 23
             filename:
               private_use_as_methods_instead: 0
@@ -211,20 +211,20 @@ steps:
         - name: show
           body_span:
             start:
-              line: 0
+              line: 2
               column: 0
             end:
-              line: 2
+              line: 4
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 2
+              line: 4
               column: 0
             end:
-              line: 2
+              line: 4
               column: 1
             filename:
               private_use_as_methods_instead: 0
@@ -266,20 +266,20 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 5
+              line: 7
               column: 2
             end:
-              line: 5
+              line: 7
               column: 23
             filename:
               private_use_as_methods_instead: 0
@@ -291,20 +291,20 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 6
+              line: 8
               column: 2
             end:
-              line: 6
+              line: 8
               column: 34
             filename:
               private_use_as_methods_instead: 0
@@ -316,20 +316,20 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 6
+              line: 8
               column: 2
             end:
-              line: 6
+              line: 8
               column: 34
             filename:
               private_use_as_methods_instead: 0
@@ -337,20 +337,20 @@ steps:
         - name: show
           body_span:
             start:
-              line: 0
+              line: 2
               column: 0
             end:
-              line: 2
+              line: 4
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 0
+              line: 2
               column: 0
             end:
-              line: 0
+              line: 2
               column: 16
             filename:
               private_use_as_methods_instead: 0
@@ -388,20 +388,20 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 6
+              line: 8
               column: 2
             end:
-              line: 6
+              line: 8
               column: 34
             filename:
               private_use_as_methods_instead: 0
@@ -409,20 +409,20 @@ steps:
         - name: show
           body_span:
             start:
-              line: 0
+              line: 2
               column: 0
             end:
-              line: 2
+              line: 4
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 1
+              line: 3
               column: 2
             end:
-              line: 1
+              line: 3
               column: 18
             filename:
               private_use_as_methods_instead: 0
@@ -465,20 +465,20 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 6
+              line: 8
               column: 2
             end:
-              line: 6
+              line: 8
               column: 34
             filename:
               private_use_as_methods_instead: 0
@@ -486,20 +486,20 @@ steps:
         - name: show
           body_span:
             start:
-              line: 0
+              line: 2
               column: 0
             end:
-              line: 2
+              line: 4
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 2
+              line: 4
               column: 0
             end:
-              line: 2
+              line: 4
               column: 1
             filename:
               private_use_as_methods_instead: 0
@@ -537,21 +537,332 @@ steps:
         - name: main
           body_span:
             start:
-              line: 4
+              line: 6
               column: 0
             end:
-              line: 7
+              line: 20
               column: 1
             filename:
               private_use_as_methods_instead: 0
           file_path: dummy.rs
           location:
             start:
-              line: 6
+              line: 8
               column: 2
             end:
-              line: 6
+              line: 8
               column: 34
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 6
+              column: 0
+            end:
+              line: 20
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 11
+              column: 2
+            end:
+              line: 11
+              column: 49
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 6
+              column: 0
+            end:
+              line: 20
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 12
+              column: 2
+            end:
+              line: 12
+              column: 21
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 6
+              column: 0
+            end:
+              line: 20
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 13
+              column: 2
+            end:
+              line: 13
+              column: 21
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 6
+              column: 0
+            end:
+              line: 20
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 14
+              column: 2
+            end:
+              line: 19
+              column: 5
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 6
+              column: 0
+            end:
+              line: 20
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 14
+              column: 2
+            end:
+              line: 19
+              column: 5
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+        - name: show
+          body_span:
+            start:
+              line: 2
+              column: 0
+            end:
+              line: 4
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 2
+              column: 0
+            end:
+              line: 2
+              column: 16
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: s
+              value:
+                type: Unallocated
+                value:
+                  alloc_id: 0
+              moved_paths: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 6
+              column: 0
+            end:
+              line: 20
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 14
+              column: 2
+            end:
+              line: 19
+              column: 5
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+        - name: show
+          body_span:
+            start:
+              line: 2
+              column: 0
+            end:
+              line: 4
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 3
+              column: 2
+            end:
+              line: 3
+              column: 18
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: s
+              value:
+                type: Unallocated
+                value:
+                  alloc_id: 0
+              moved_paths: []
+            - name: n
+              value:
+                type: Uint
+                value: 2
+              moved_paths: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 6
+              column: 0
+            end:
+              line: 20
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 14
+              column: 2
+            end:
+              line: 19
+              column: 5
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+        - name: show
+          body_span:
+            start:
+              line: 2
+              column: 0
+            end:
+              line: 4
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 4
+              column: 0
+            end:
+              line: 4
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          locals:
+            - name: s
+              value:
+                type: Unallocated
+                value:
+                  alloc_id: 0
+              moved_paths: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 6
+              column: 0
+            end:
+              line: 20
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 14
+              column: 2
+            end:
+              line: 19
+              column: 5
+            filename:
+              private_use_as_methods_instead: 0
+          locals: []
+    heap:
+      locations: []
+  - stack:
+      frames:
+        - name: main
+          body_span:
+            start:
+              line: 6
+              column: 0
+            end:
+              line: 20
+              column: 1
+            filename:
+              private_use_as_methods_instead: 0
+          file_path: dummy.rs
+          location:
+            start:
+              line: 20
+              column: 0
+            end:
+              line: 20
+              column: 1
             filename:
               private_use_as_methods_instead: 0
           locals: []
